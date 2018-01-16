@@ -11,7 +11,8 @@
    (de.jollyday.caching HolidayManagerValueHandler)
    (de.jollyday HolidayCalendar HolidayManager ManagerParameter ManagerParameters)
    (de.jollyday.configuration ConfigurationProviderManager)
-   (de.jollyday.util Cache)
+   (de.jollyday.datasource ConfigurationDataSourceManager)
+   (de.jollyday.util Cache Cache$ValueHandler ClassLoadingUtil)
    (java.net URL)
    (java.util Locale)))
 
@@ -83,13 +84,41 @@
                    "'. Cannot create manager.")))))
 
 
+(defn instantiate-manager
+  "Instantiates the manager implementing class"
+  [manager-class-name]
+  (try
+    (->> manager-class-name
+         (.loadClass (ClassLoadingUtil.))
+         (.newInstance))
+    (catch Exception e
+      (throw (IllegalStateException.
+              (str "Cannot create manager class " manager-class-name)
+              e)))))
+
+
+
+(defn holiday-manager-value-handler
+  "Creates the ValueHandler which constructs a HolidayManager"
+  [parameter manager-class-name]
+  (reify Cache$ValueHandler
+    (getKey [_]
+      (.createCacheKey parameter))
+    (createValue [_]
+      (doto (instantiate-manager manager-class-name)
+        (.setConfigurationDataSource (.getConfigurationDataSource
+                                      (ConfigurationDataSourceManager.)
+                                      parameter))
+        (.init parameter)))))
+
+
 (defn create-manager
   "Creates a new HolidayManager instance for the country
   and puts it to the manager cache"
   [parameter]
   (.mergeConfigurationProperties configuration-provider-manager parameter)
   (->> (read-manager-impl-class-name parameter)
-       (HolidayManagerValueHandler. parameter)
+       (holiday-manager-value-handler parameter)
        (.get holiday-manager-cache)))
 
 
