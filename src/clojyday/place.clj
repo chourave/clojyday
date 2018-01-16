@@ -8,7 +8,10 @@
    [clojyday.util :refer [$ string-array?]])
 
   (:import
-   (de.jollyday HolidayCalendar HolidayManager ManagerParameters)
+   (de.jollyday.caching HolidayManagerValueHandler)
+   (de.jollyday HolidayCalendar HolidayManager ManagerParameter ManagerParameters)
+   (de.jollyday.configuration ConfigurationProviderManager)
+   (de.jollyday.util Cache)
    (java.net URL)
    (java.util Locale)))
 
@@ -58,6 +61,38 @@
                                    :zone (s/* keyword?))))
 
 
+;; Jollyday HolidayManager instance creation
+
+(def holiday-manager-cache
+  "Cache for manager instances on a per country basis"
+  (Cache.))
+
+
+(def configuration-provider-manager
+  "Manager for configuration providers, delivers the jollyday configuration"
+  (ConfigurationProviderManager.))
+
+
+(defn read-manager-impl-class-name
+  "Reads the managers implementation class from the properties config file"
+  [parameter]
+  (or (.getManagerImplClassName parameter)
+      (throw (IllegalStateException.
+              (str "Missing configuration '"
+                   ManagerParameter/MANAGER_IMPL_CLASS_PREFIX
+                   "'. Cannot create manager.")))))
+
+
+(defn create-manager
+  "Creates a new HolidayManager instance for the country
+  and puts it to the manager cache"
+  [parameter]
+  (.mergeConfigurationProperties configuration-provider-manager parameter)
+  (->> (read-manager-impl-class-name parameter)
+       (HolidayManagerValueHandler. parameter)
+       (.get holiday-manager-cache)))
+
+
 ;; Parsing a place
 
 (defn holiday-manager
@@ -66,7 +101,7 @@
    (-> (holiday-calendars calendar)
        (or calendar)
        (ManagerParameters/create)
-       (HolidayManager/getInstance))))
+       create-manager)))
 
 (s/fdef holiday-manager
   :args (s/cat :calendar `calendar-or-id)
