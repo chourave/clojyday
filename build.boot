@@ -61,6 +61,19 @@
    (show :updates true)
    (check-conflicts)))
 
+
+(deftask import-xml-calendars
+  ""
+  []
+  (let [dir (tmp-dir!)]
+    (with-pre-wrap [fileset]
+      (empty-dir! dir)
+      (require '[clojyday.xml-edn :as xml-edn])
+      (let [xml->edn (resolve 'xml-edn/xml->edn)]
+        (xml->edn dir)
+        (commit! (add-resource fileset dir))))))
+
+
 ;; Copyright 2018 Frederic Merizen
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
