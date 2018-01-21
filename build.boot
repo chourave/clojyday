@@ -4,7 +4,6 @@
 (def +version+ "0.1-SNAPSHOT")
 
 (set-env!
-
  :resource-paths
  #{"src"}
 
@@ -23,6 +22,7 @@
    [org.clojure/clojure                 "1.9.0"]
    [org.eclipse.persistence/eclipselink "2.7.1"        :scope "test"]])
 
+
 (task-options!
  pom {:project     +project+
       :version     +version+
@@ -31,9 +31,11 @@
       :scm         {:url "https://github.com/chourave/clojyday"}
       :license     {"Apache-2.0" "http://www.apache.org/licenses/LICENSE-2.0"}})
 
+
 (require
  '[boot.pod :as pod]
  '[metosin.boot-alt-test :refer (alt-test)])
+
 
 (deftask test-clj
   "Run unit tests"
@@ -41,6 +43,7 @@
   (comp
    (watch)
    (alt-test :report 'eftest.report.pretty/report)))
+
 
 (deftask check-conflicts
   "Verify there are no dependency conflicts."
@@ -53,6 +56,7 @@
                              "Use :exclusions to resolve them!")
                         conflicts))
         (println "\nVerified there are no dependency conflicts.")))))
+
 
 (deftask check-deps
   "Check that dependencies are in good shape"
