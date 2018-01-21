@@ -112,7 +112,7 @@
 
 
 (defn calendars
-  ""
+  "List all the supported holiday calendars"
   []
   (into #{}
         (map (comp keyword string/lower-case))

@@ -67,7 +67,8 @@
 
 
 (deftask import-xml-calendars
-  ""
+  "Translate all calendar configuration files from Jollyday xml
+  to Clojyday edn"
   []
   (let [dir (tmp-dir!)]
     (with-pre-wrap [fileset]

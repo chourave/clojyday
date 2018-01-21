@@ -69,7 +69,8 @@
 
 
 (defn read-xml
-  ""
+  "Read a Jollyday XML calendar configuration file for the given locale
+  and parse it to a xml map"
   [suffix]
   (-> (str "holidays/Holidays_" (name suffix) ".xml")
       io/resource
@@ -82,7 +83,7 @@
 
 
 (defn attribute
-  ""
+  "Get the value of the named attribute in an xml node"
   [node attribute-name]
   (get-in node [:attrs attribute-name]))
 
@@ -92,7 +93,7 @@
 
 
 (defn elements
-  ""
+  "Get the child elements with a given tag of an xml node"
   [node tag]
   (let [prefixed (keyword (str "tns" tag))]
     (->> node
@@ -106,7 +107,7 @@
 
 
 (defn element
-  ""
+  "Get the first child element with a given tag of an xml node"
   [node tag]
   (first (elements node tag)))
 
@@ -129,7 +130,7 @@
 
 
 (defn lowercase?
-  ""
+  "Does `s` contain no upper case characters?"
   [s]
   (= s (string/lower-case s)))
 
@@ -139,7 +140,7 @@
 
 
 (defn strip
-  ""
+  "Remvoe any occurrences of `to-strip` in `s`"
   [s to-strip]
   (string/replace s to-strip ""))
 
@@ -149,7 +150,7 @@
 
 
 (defn kebab->camel
-  ""
+  "Turn kebab-case strings into camelCase"
   [s]
   (let [[head & tail] (string/split s #"-")]
     (apply str
@@ -165,7 +166,7 @@
 
 
 (defn camel->kebab
-  ""
+  "Turn camelCase (and PascalCase) strings into kebab-case"
   [s]
   (as-> s %
     (string/split % #"(?=[A-Z])")
