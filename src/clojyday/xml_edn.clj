@@ -117,13 +117,13 @@
 
 ;; String manipulation
 
-(defn equals-ignore-case
-  ""
+(defn equals-ignore-case?
+  "Case insensitive string comparison"
   [s1 s2]
   (= (-> s1 string/lower-case)
      (-> s2 string/lower-case)))
 
-(s/fdef equals-ignore-case
+(s/fdef equals-ignore-case?
   :args (s/cat :s1 string? :s2 string?)
   :ret boolean?)
 
@@ -159,7 +159,7 @@
 (s/fdef kebab->camel
   :args (s/cat :s string?)
   :ret string?
-  :fn #(equals-ignore-case
+  :fn #(equals-ignore-case?
         (:ret %)
         (-> % :args :s (strip "-"))))
 
@@ -177,7 +177,7 @@
   :ret string?
   :fn (s/and
        #(-> % :ret lowercase?)
-       #(equals-ignore-case
+       #(equals-ignore-case?
          (-> % :ret (strip "-"))
          (-> % :args :s))))
 
@@ -225,7 +225,7 @@
 (s/fdef ->keyword
   :args (s/cat :s string?)
   :ret keyword?
-  :fn #(equals-ignore-case
+  :fn #(equals-ignore-case?
         (-> % :ret name (strip "-"))
         (-> % :args :s (strip "_"))))
 
