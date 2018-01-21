@@ -78,7 +78,22 @@
 ;; Holidays
 
 (deftest parse-holiday-test
-  (is ()))
+  (is (= (clojyday/map->Holiday {:date            (time/local-date 2003 1 2)
+                                 :description     nil
+                                 :description-key "blah"
+                                 :official?       true})
+         (clojyday/parse-holiday (de.jollyday.Holiday.
+                                  (time/local-date 2003 1 2)
+                                  "blah"
+                                  de.jollyday.HolidayType/OFFICIAL_HOLIDAY))))
+  (is (= (clojyday/map->Holiday {:date            (time/local-date 2018 12 18)
+                                 :description     nil
+                                 :description-key "desc"
+                                 :official?       false})
+         (clojyday/parse-holiday (de.jollyday.Holiday.
+                                  (time/local-date 2018 12 18)
+                                  "desc"
+                                  de.jollyday.HolidayType/UNOFFICIAL_HOLIDAY)))))
 
 (defn filter-holiday
   "Convert a seqable of Holidays into a set of maps, keeping only
