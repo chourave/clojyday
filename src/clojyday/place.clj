@@ -8,10 +8,11 @@
    [clojyday.util :refer [$ string-array?]])
 
   (:import
-   (de.jollyday.caching HolidayManagerValueHandler)
    (de.jollyday HolidayCalendar HolidayManager ManagerParameter ManagerParameters)
+   (de.jollyday.caching HolidayManagerValueHandler)
    (de.jollyday.configuration ConfigurationProviderManager)
    (de.jollyday.datasource ConfigurationDataSourceManager)
+   (de.jollyday.parameter CalendarPartManagerParameter UrlManagerParameter)
    (de.jollyday.util Cache Cache$ValueHandler ClassLoadingUtil)
    (java.net URL)
    (java.util Locale)))
@@ -122,6 +123,35 @@
        (.get holiday-manager-cache)))
 
 
+(defprotocol ManagerParameterSource
+  (create-manager-parameters [source]))
+
+(extend-protocol ManagerParameterSource
+  String
+  (create-manager-parameters [calendar-part]
+    (-> (if (string/blank? calendar-part)
+          (-> (Locale/getDefault) (.getCountry))
+          (string/trim calendar-part))
+        string/lower-case
+        (CalendarPartManagerParameter. nil)))
+
+  nil
+  (create-manager-parameters [_]
+    (create-manager-parameters ""))
+
+  Locale
+  (create-manager-parameters [lc]
+    (create-manager-parameters (.getCountry lc)))
+
+  HolidayCalendar
+  (create-manager-parameters [calendar]
+    (create-manager-parameters (.getId calendar)))
+
+  URL
+  (create-manager-parameters [calendar-file-url]
+    (UrlManagerParameter. calendar-file-url nil)))
+
+
 ;; Parsing a place
 
 (defn holiday-manager
@@ -129,7 +159,7 @@
   ([calendar]
    (-> (holiday-calendars calendar)
        (or calendar)
-       (ManagerParameters/create)
+       create-manager-parameters
        create-manager)))
 
 (s/fdef holiday-manager
