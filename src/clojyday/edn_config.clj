@@ -405,15 +405,27 @@
                          e)))))
 
 
+(defn raw-print
+  ""
+  [config w]
+  (binding [*out* w]
+    (prn (read-configuration config))))
+
+
+(defn pretty-print
+  ""
+  [config w]
+  (pprint (sorted-configuration config) w))
+
+
 (defn xml->edn
   ""
-  [target-dir]
+  [target-dir print]
   (binding [pprint/*print-right-margin* 110]
     (doseq [cal  (clojyday/calendars)
-            :let [conf (sorted-configuration cal)
-                  f    (io/file target-dir (str (name cal) "-holidays.edn"))]]
+            :let [f (io/file target-dir "holidays" (str (name cal) "-holidays.edn"))]]
       (io/make-parents f)
-      (pprint conf (io/writer f)))))
+      (print cal (io/writer f)))))
 
 
 ;; Fixed day
