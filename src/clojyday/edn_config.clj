@@ -304,9 +304,10 @@
   ""
   :tag)
 
-(defmulti parser :holiday)
+(defmulti holiday-spec
+  :holiday)
 
-(s/def holiday (s/multi-spec parser :holiday))
+(s/def holiday (s/multi-spec holiday-spec :holiday))
 
 (defn tag->holiday
   ""
@@ -488,7 +489,7 @@
 (defmethod -parse-holiday :tns:Fixed [node]
   (parse-fixed node))
 
-(defmethod parser :fixed [_]
+(defmethod holiday-spec :fixed [_]
   (s/merge
    `holiday-common
    ::date))
@@ -519,7 +520,7 @@
       weekday (assoc :weekday (->keyword weekday))
       days    (assoc :days (->int days)))))
 
-(defmethod parser :relative-to-fixed [_]
+(defmethod holiday-spec :relative-to-fixed [_]
   (s/merge
    `holiday-common
    (s/and
@@ -544,7 +545,7 @@
       (assoc :from (-> node (element :from) parse-fixed))
       (assoc :to (-> node (element :to) parse-fixed))))
 
-(defmethod parser :fixed-weekday-between-fixed [_]
+(defmethod holiday-spec :fixed-weekday-between-fixed [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [::weekday ::from ::to])))
@@ -581,7 +582,7 @@
 (defmethod -parse-holiday :tns:FixedWeekday [node]
   (parse-fixed-weekday node))
 
-(defmethod parser :fixed-weekday [_]
+(defmethod holiday-spec :fixed-weekday [_]
   (s/merge
    `holiday-common
    ::fixed-weekday))
@@ -609,7 +610,7 @@
         :when    ->keyword})
       (assoc :fixed-weekday (-> node (element :FixedWeekday) parse-fixed-weekday))))
 
-(defmethod parser :relative-to-weekday-in-month [_]
+(defmethod holiday-spec :relative-to-weekday-in-month [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [::weekday ::when ::fixed-weekday])))
@@ -634,7 +635,7 @@
         :when ->keyword})
       (assoc :date (-> node (element :day) parse-fixed))))
 
-(defmethod parser :fixed-weekday-relative-to-fixed [_]
+(defmethod holiday-spec :fixed-weekday-relative-to-fixed [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [::which ::weekday ::when ::date])))
@@ -682,7 +683,7 @@
      :chronology ->keyword})
    (parse-moving-conditions node)))
 
-(defmethod parser :christian-holiday [_]
+(defmethod holiday-spec :christian-holiday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [:christian/type] :opt-un [::chronology ::moving-conditions])))
@@ -702,7 +703,7 @@
    :days (-> node (element :days) :content first ->int)})
 
 
-(defmethod parser :relative-to-easter-sunday [_]
+(defmethod holiday-spec :relative-to-easter-sunday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [::chronology ::days])))
@@ -734,7 +735,7 @@
    node
    {:type ->keyword}))
 
-(defmethod parser :islamic-holiday [_]
+(defmethod holiday-spec :islamic-holiday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [:islamic/type])))
@@ -756,7 +757,7 @@
    node
    {:type ->keyword}))
 
-(defmethod parser :hindu-holiday [_]
+(defmethod holiday-spec :hindu-holiday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [:hindu/type])))
@@ -800,7 +801,7 @@
    node
    {:type ->keyword}))
 
-(defmethod parser :hebrew-holiday [_]
+(defmethod holiday-spec :hebrew-holiday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [:hebrew/type])))
@@ -823,7 +824,7 @@
    node
    {:type ->keyword}))
 
-(defmethod parser :ethiopian-orthodox-holiday [_]
+(defmethod holiday-spec :ethiopian-orthodox-holiday [_]
   (s/merge
    `holiday-common
    (s/keys :req-un [:ethiopian-orthodox/type])))
