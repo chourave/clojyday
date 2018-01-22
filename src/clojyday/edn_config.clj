@@ -21,18 +21,8 @@
 
 (s/def ::day (s/int-in 1 32))
 
-(s/def ::month #{:january
-                 :february
-                 :march
-                 :april
-                 :may
-                 :june
-                 :july
-                 :august
-                 :september
-                 :october
-                 :november
-                 :december})
+(s/def ::month #{:january :february :march :april :may :june
+                 :july :august :september :october :november :december})
 
 (s/def ::weekday #{:monday :tuesday :wednesday :thursday :friday :saturday :sunday})
 
@@ -665,25 +655,11 @@
 
 ;; Christian
 
-(s/def :christian/type #{:good-friday
-                         :easter-monday
-                         :ascension-day
-                         :whit-monday
-                         :corpus-christi
-                         :maundy-thursday
-                         :ash-wednesday
-                         :mardi-gras
-                         :general-prayer-day
-                         :clean-monday
-                         :shrove-monday
-                         :pentecost
-                         :carnival
-                         :easter-saturday
-                         :easter-tuesday
-                         :sacred-heart
-                         :easter
-                         :pentecost-monday
-                         :whit-sunday})
+(s/def :christian/type
+  #{:good-friday :easter-monday :ascension-day :whit-monday :corpus-christi
+    :maundy-thursday :ash-wednesday :mardi-gras :general-prayer-day
+    :clean-monday :shrove-monday :pentecost :carnival :easter-saturday
+    :easter-tuesday :sacred-heart :easter :pentecost-monday :whit-sunday})
 
 (s/def ::chronology #{:julian :gregorian})
 
@@ -731,15 +707,9 @@
 
 ;; Islamic
 
-(s/def :islamic/type #{:newyear
-                       :aschura
-                       :mawlid-an-nabi
-                       :lailat-al-miraj
-                       :lailat-al-barat
-                       :ramadan
-                       :lailat-al-qadr
-                       :id-al-fitr
-                       :id-ul-adha})
+(s/def :islamic/type
+  #{:newyear :aschura :mawlid-an-nabi :lailat-al-miraj :lailat-al-barat
+    :ramadan :lailat-al-qadr :id-al-fitr :id-ul-adha})
 
 
 (defmethod -parse-holiday :tns:IslamicHoliday [node]
@@ -784,29 +754,11 @@
 
 ;; Hebrew
 
-(s/def :hebrew/type #{:rosh-hashanah
-                      :aseret-yemei-teshuva
-                      :yom-kippur
-                      :sukkot
-                      :shemini-atzeret
-                      :hanukkah
-                      :asarah-betevet
-                      :tu-bishvat
-                      :purim
-                      :1-nisan
-                      :pesach
-                      :sefirah
-                      :lag-baomer
-                      :shavout
-                      :17-tammuz
-                      :tisha-bav
-                      :1-elul
-                      :rosh-codesh
-                      :shabbat
-                      :yom-hashoah
-                      :yom-hazikaron
-                      :yom-haatzamaut
-                      :yom-yerushalaim})
+(s/def :hebrew/type
+  #{:rosh-hashanah :aseret-yemei-teshuva :yom-kippur :sukkot :shemini-atzeret
+    :hanukkah :asarah-betevet :tu-bishvat :purim :1-nisan :pesach :sefirah
+    :lag-baomer :shavout :17-tammuz :tisha-bav :1-elul :rosh-codesh :shabbat
+    :yom-hashoah :yom-hazikaron :yom-haatzamaut :yom-yerushalaim})
 
 (defmethod -parse-holiday :tns:HebrewHoliday [node]
   (parse-attributes
@@ -827,9 +779,8 @@
 
 
 ;; Ethiopian orthodox
-(s/def :ethiopian-orthodox/type #{:timkat
-                                  :enkutatash
-                                  :meskel})
+(s/def :ethiopian-orthodox/type
+  #{:timkat :enkutatash :meskel})
 
 (defmethod -parse-holiday :tns:EthiopianOrthodoxHoliday [node]
   (parse-attributes
