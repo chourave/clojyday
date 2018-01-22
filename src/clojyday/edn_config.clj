@@ -8,7 +8,15 @@
    [clojure.string :as string]
    [clojure.walk :refer [postwalk]]
    [clojure.xml :as xml]
-   [clojyday.core :as clojyday]))
+   [clojyday.core :as clojyday])
+  (:import
+   (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType
+                       EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
+                       Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
+                       FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
+                       HinduHolidayType HolidayType IslamicHoliday IslamicHolidayType
+                       Month MovingCondition RelativeToEasterSunday RelativeToFixed
+                       RelativeToWeekdayInMonth Weekday When Which With)))
 
 
 (s/def ::day (s/int-in 1 32))
@@ -183,6 +191,12 @@
          (-> % :args :s))))
 
 
+(defn ->const-name
+  ""
+  [x]
+  (-> x name string/upper-case (string/replace #"-" "_")))
+
+
 ;;
 
 (defn parse-attributes
@@ -231,6 +245,12 @@
         (-> % :args :s (strip "_"))))
 
 
+(defmacro ->enum
+  ""
+  [value enum]
+  `(-> ~value ->const-name (~(symbol (str enum) "valueOf"))))
+
+
 ;;
 
 (s/def ::holiday #{:islamic-holiday
@@ -266,6 +286,18 @@
 (s/fdef parse-moving-conditions
   :args (s/cat :node `xml-node)
   :ret (s/nilable (s/keys :req-un [::moving-conditions])))
+
+
+(defn add-moving-conditions
+  ""
+  [bean config]
+  (-> bean
+      (.getMovingCondition)
+      (.addAll (map #(doto (MovingCondition.)
+                       (.setSubstitute (-> % :substitute (->enum Weekday)))
+                       (.setWith (-> % :with (->enum With)))
+                       (.setWeekday (-> % :weekday (->enum Weekday))))
+                    (:moving-conditions config)))))
 
 
 (defmulti -parse-holiday
@@ -309,6 +341,16 @@
 (s/fdef parse-common-holiday-attributes
   :args (s/cat :node `xml-node)
   :ret `holiday-common)
+
+
+(defn set-common-holiday-attributes
+  [holiday config]
+  (doto holiday
+    (.setValidFrom (some-> config :valid-from int))
+    (.setValidTo (some-> config :valid-to int))
+    (.setEvery (some-> config :every ->const-name))
+    (.setLocalizedType (some-> config :localized-type (->enum HolidayType)))
+    (.setDescriptionPropertiesKey (some-> config :description-key ->const-name))))
 
 
 (defn parse-holiday
@@ -419,6 +461,13 @@
       (print cal (io/writer f)))))
 
 
+;;
+
+(defmulti ->Holiday
+  ""
+  :holiday)
+
+
 ;; Fixed day
 
 (defn parse-fixed
@@ -445,6 +494,20 @@
    ::date))
 
 
+(defn ->Fixed
+  ""
+  [config]
+  (doto (Fixed.)
+    (set-common-holiday-attributes config)
+    (.setMonth (-> config :month (->enum Month)))
+    (.setDay (-> config :day int))
+    (add-moving-conditions config)))
+
+
+(defmethod ->Holiday :fixed
+  [config]
+  (->Fixed config))
+
 ;; Weekday relative to fixed
 
 (defmethod -parse-holiday :tns:RelativeToFixed [node]
@@ -464,6 +527,16 @@
     #(some % [:days :weekday]))))
 
 
+(defmethod ->Holiday :relative-to-fixed
+  [config]
+  (doto (RelativeToFixed.)
+    (set-common-holiday-attributes config)
+    (.setWeekday (some-> config :weekday (->enum Weekday)))
+    (.setWhen (-> config :when (->enum When)))
+    (.setDate (-> config :date ->Fixed))
+    (.setDays (some-> config :days int))))
+
+
 (defmethod -parse-holiday :tns:FixedWeekdayBetweenFixed [node]
   (-> node
       (parse-attributes
@@ -475,6 +548,15 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [::weekday ::from ::to])))
+
+
+(defmethod ->Holiday :fixed-weekday-between-fixed
+  [config]
+  (doto (FixedWeekdayBetweenFixed.)
+    (set-common-holiday-attributes config)
+    (.setWeekday (some-> config :weekday (->enum Weekday)))
+    (.setFrom (-> config :from ->Fixed))
+    (.setTo (-> config :to ->Fixed))))
 
 
 ;; Weekday in month
@@ -505,6 +587,19 @@
    ::fixed-weekday))
 
 
+(defn ->FixedWeekday
+  [config]
+  (doto (FixedWeekdayInMonth.)
+    (set-common-holiday-attributes config)
+    (.setWhich (-> config :which (->enum Which)))
+    (.setWeekday (-> config :weekday (->enum Weekday)))
+    (.setMonth (-> config :month (->enum Month)))))
+
+
+(defmethod ->Holiday :fixed-weekday
+  [config]
+  (->FixedWeekday config))
+
 ;; Relative to weekday in month
 
 (defmethod -parse-holiday :tns:RelativeToWeekdayInMonth [node]
@@ -518,6 +613,15 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [::weekday ::when ::fixed-weekday])))
+
+
+(defmethod ->Holiday :relative-to-weekday-in-month
+  [config]
+  (doto (RelativeToWeekdayInMonth.)
+    (set-common-holiday-attributes config)
+    (.setWeekday (-> config :weekday (->enum Weekday)))
+    (.setWhen (-> config :when (->enum When)))
+    (.setFixedWeekday (-> config :fixed-weekday ->FixedWeekday))))
 
 
 ;; Weekday relative to fixed day
@@ -534,6 +638,16 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [::which ::weekday ::when ::date])))
+
+
+(defmethod ->Holiday :fixed-weekday-relative-to-fixed
+  [config]
+  (doto (FixedWeekdayRelativeToFixed.)
+    (set-common-holiday-attributes config)
+    (.setWhich (-> config :which (->enum Which)))
+    (.setWeekday (-> config :weekday (->enum Weekday)))
+    (.setWhen (-> config :when (->enum When)))
+    (.setDay (-> config :date ->Fixed))))
 
 
 ;; Christian
@@ -574,6 +688,15 @@
    (s/keys :req-un [:christian/type] :opt-un [::chronology ::moving-conditions])))
 
 
+(defmethod ->Holiday :christian-holiday
+  [config]
+  (doto (ChristianHoliday.)
+    (set-common-holiday-attributes config)
+    (.setType (-> config :type (->enum ChristianHolidayType)))
+    (.setChronology (some-> config :chronology (->enum ChronologyType)))
+    (add-moving-conditions config)))
+
+
 (defmethod -parse-holiday :tns:RelativeToEasterSunday [node]
   {:chronology (-> node (element :chronology) :content first ->keyword)
    :days (-> node (element :days) :content first ->int)})
@@ -583,6 +706,14 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [::chronology ::days])))
+
+
+(defmethod ->Holiday :relative-to-easter-sunday
+  [config]
+  (doto (RelativeToEasterSunday.)
+    (set-common-holiday-attributes config)
+    (.setChronology (some-> config :chronology (->enum ChronologyType)))
+    (.setDays (-> config :days int))))
 
 
 ;; Islamic
@@ -597,6 +728,7 @@
                        :id-al-fitr
                        :id-ul-adha})
 
+
 (defmethod -parse-holiday :tns:IslamicHoliday [node]
   (parse-attributes
    node
@@ -606,6 +738,13 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [:islamic/type])))
+
+
+(defmethod ->Holiday :islamic-holiday
+  [config]
+  (doto (IslamicHoliday.)
+    (set-common-holiday-attributes config)
+    (.setType (-> config :type (->enum IslamicHolidayType)))))
 
 
 ;; Hindu
@@ -621,6 +760,13 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [:hindu/type])))
+
+
+(defmethod ->Holiday :hindu-holiday
+  [config]
+  (doto (HinduHoliday.)
+    (set-common-holiday-attributes config)
+    (.setType (-> config :type (->enum HinduHolidayType)))))
 
 
 ;; Hebrew
@@ -660,6 +806,13 @@
    (s/keys :req-un [:hebrew/type])))
 
 
+(defmethod ->Holiday :hebrew-holiday
+  [config]
+  (doto (HebrewHoliday.)
+    (set-common-holiday-attributes config)
+    (.setType (-> config :type ->const-name))))
+
+
 ;; Ethiopian orthodox
 (s/def :ethiopian-orthodox/type #{:timkat
                                   :enkutatash
@@ -674,6 +827,14 @@
   (s/merge
    `holiday-common
    (s/keys :req-un [:ethiopian-orthodox/type])))
+
+
+(defmethod ->Holiday :ethiopian-orthodox-holiday
+  [config]
+  (doto (EthiopianOrthodoxHoliday.)
+    (set-common-holiday-attributes config)
+    (.setType (-> config :type (->enum EthiopianOrthodoxHolidayType)))))
+
 
 ;; Copyright 2018 Frederic Merizen
 ;;
