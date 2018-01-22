@@ -192,7 +192,7 @@
 
 
 (defn ->const-name
-  ""
+  "Parse a :clojure-keyword to a JAVA_CONSTANT_NAME (as a strig)"
   [x]
   (-> x name string/upper-case (string/replace #"-" "_")))
 
@@ -200,7 +200,16 @@
 ;;
 
 (defn parse-attributes
-  ""
+  "Parse selected attributes from an xml node.
+
+  `attribute-fns` should be a map from attribute names to functions
+  that parse attribute values. The attributes names should be kebab-cased
+  keywords, and will be translated to camelCase when looking them up in
+  the node.
+
+  The return value is a map of kebab-cased attribute names to values returned
+  by the parsing function, for those attributes actually present in the node.
+  "
   [node attribute-fns]
   (reduce
    (fn [res [att f]]
@@ -220,7 +229,7 @@
 
 
 (defn ->int
-  ""
+  "Parse a string to an integer"
   [s]
   (Integer/parseInt s))
 
@@ -230,7 +239,7 @@
 
 
 (defn ->keyword
-  ""
+  "parse a CONSTANT_CASE string to a :kebab-keyword"
   [s]
   (-> s
    (string/replace "_" "-")
@@ -246,7 +255,7 @@
 
 
 (defmacro ->enum
-  ""
+  "Parse a keyword to a value in a Java Enum"
   [value enum]
   `(-> ~value ->const-name (~(symbol (str enum) "valueOf"))))
 
@@ -272,7 +281,7 @@
    :opt-un [::valid-from ::valid-to ::every ::description-key ::localized-type]))
 
 (defn parse-moving-conditions
-  ""
+  "Parse the moving conditions from an xml node into a map"
   [node]
   (when-let [conditions (elements node :MovingCondition)]
     {:moving-conditions
@@ -289,7 +298,7 @@
 
 
 (defn add-moving-conditions
-  ""
+  "Add the moving conditions from a map to a Jollyday Holiday object"
   [bean config]
   (-> bean
       (.getMovingCondition)
@@ -301,10 +310,13 @@
 
 
 (defmulti -parse-holiday
-  ""
+  "Parse the tag-specific parts of an xml node to a map.
+  Do not use directly, use `parse-holiday` instead (it also
+  handles the common parts)"
   :tag)
 
 (defmulti holiday-spec
+  "Returns the spec for a holiday definition"
   :holiday)
 
 (s/def holiday (s/multi-spec holiday-spec :holiday))
