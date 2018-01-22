@@ -346,40 +346,31 @@
 (def key-order
   ""
   [;; configuration
-   :hierarchy
-   :description
-   :holidays
-   :sub-configurations
+   :hierarchy, :description, :holidays, :sub-configurations
 
    ;; holiday prefix
    :holiday
-   ;; fixed
-   :month
-   :day
-   ;; relative prefix
-   :when
-   :date
-   :days
-   ;; weekday
-   :which
-   :weekday
-   :from
-   :to
-   ;; relative suffix
-   :fixed-weekday
-   :every
-   ;; christian / islamic / hebrew / hindu / ethiopian orthodox
-   :type
-   :chronology
-   ;; holiday suffix
-   :valid-from
-   :valid-to
-   :description-key
-   :localized-type
-   :moving-conditions
 
-   :substitute
-   :with])
+   ;; fixed
+   :month, :day
+
+   ;; relative prefix
+   :when, :date, :days
+
+   ;; weekday
+   :which, :weekday, :from, :to
+
+   ;; relative suffix
+   :fixed-weekday, :every
+
+   ;; christian / islamic / hebrew / hindu / ethiopian orthodox
+   :type, :chronology
+
+   ;; holiday suffix
+   :valid-from, :valid-to, :description-key, :localized-type, :moving-conditions
+
+   ;; moving conditions
+   :substitute, :with])
 
 
 (defn sort-map
