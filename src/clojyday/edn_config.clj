@@ -1,6 +1,6 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.xml-edn
+(ns clojyday.edn-config
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint :refer [pprint]]

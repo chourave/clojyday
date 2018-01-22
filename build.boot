@@ -69,13 +69,16 @@
 (deftask import-xml-calendars
   "Translate all calendar configuration files from Jollyday xml
   to Clojyday edn"
-  []
+  [p pretty bool "Pretty-print the generated EDN files"]
   (let [dir (tmp-dir!)]
     (with-pre-wrap [fileset]
       (empty-dir! dir)
-      (require '[clojyday.xml-edn :as xml-edn])
-      (let [xml->edn (resolve 'xml-edn/xml->edn)]
-        (xml->edn dir)
+      (require '[clojyday.edn-config :as edn-config])
+      (let [xml->edn (resolve 'edn-config/xml->edn)
+            print (if pretty
+                    (resolve 'edn-config/pretty-print)
+                    (resolve 'edn-config/raw-print))]
+        (xml->edn dir print)
         (commit! (add-resource fileset dir))))))
 
 

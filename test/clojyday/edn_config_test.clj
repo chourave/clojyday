@@ -1,10 +1,10 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.xml-edn-test
+(ns clojyday.edn-config-test
   (:require
-   [clojyday.xml-edn :as xml-edn]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.xml :as xml]
+   [clojyday.edn-config :as edn-config]
    [clojyday.spec-test-utils :refer [instrument-fixture]]))
 
 ;; Fixtures
@@ -30,7 +30,7 @@
 
 (deftest attribute-test
   (is (= "the Daltons"
-         (xml-edn/attribute testing-xml :name))))
+         (edn-config/attribute testing-xml :name))))
 
 (deftest elements-test
   (is (= [{:tag     :tns:GangMember
@@ -39,83 +39,83 @@
           {:tag     :tns:GangMember
            :attrs   {:name "Jack" :family "Dalton"}
            :content []}]
-         (xml-edn/elements testing-xml :GangMember)))
-  (is (not (xml-edn/elements testing-xml :inexistent))))
+         (edn-config/elements testing-xml :GangMember)))
+  (is (not (edn-config/elements testing-xml :inexistent))))
 
 (deftest element-test
   (is (= {:tag     :tns:Pet
           :attrs   {:name "Rantanplan"}
           :content []}
-         (xml-edn/element testing-xml :Pet))))
+         (edn-config/element testing-xml :Pet))))
 
 (deftest kebab->camel-test
-  (is (= "abacaba" (xml-edn/kebab->camel "abacaba")))
-  (is (= "abaCaba" (xml-edn/kebab->camel "aba-caba"))))
+  (is (= "abacaba" (edn-config/kebab->camel "abacaba")))
+  (is (= "abaCaba" (edn-config/kebab->camel "aba-caba"))))
 
 (deftest camel->kebab-test
-  (is (= "abacaba" (xml-edn/camel->kebab "abacaba")))
-  (is (= "aba-caba" (xml-edn/camel->kebab "abaCaba")))
-  (is (= "aba-caba" (xml-edn/camel->kebab "AbaCaba"))))
+  (is (= "abacaba" (edn-config/camel->kebab "abacaba")))
+  (is (= "aba-caba" (edn-config/camel->kebab "abaCaba")))
+  (is (= "aba-caba" (edn-config/camel->kebab "AbaCaba"))))
 
 (deftest parse-attributes-test
-  (is (= {} (xml-edn/parse-attributes testing-xml {})))
+  (is (= {} (edn-config/parse-attributes testing-xml {})))
   (is (= {:type :family}
-         (xml-edn/parse-attributes
+         (edn-config/parse-attributes
           testing-xml
           {:type keyword})))
   (is (= {:sub-type :brothers}
-         (xml-edn/parse-attributes
+         (edn-config/parse-attributes
           testing-xml
           {:sub-type keyword})))
   (is (= {}
-         (xml-edn/parse-attributes
+         (edn-config/parse-attributes
           testing-xml
           {:garbage keyword}))))
 
 (deftest ->int-test
-  (is (= 15 (xml-edn/->int "15"))))
+  (is (= 15 (edn-config/->int "15"))))
 
 (deftest ->keyword-test
-  (is (= :dada (xml-edn/->keyword "dada")))
-  (is (= :da-da (xml-edn/->keyword "da_da")))
-  (is (= :dadada (xml-edn/->keyword "DADADA"))))
+  (is (= :dada (edn-config/->keyword "dada")))
+  (is (= :da-da (edn-config/->keyword "da_da")))
+  (is (= :dadada (edn-config/->keyword "DADADA"))))
 
 (deftest tag->holiday-test
   (is (= :islamic-holiday
-         (xml-edn/tag->holiday :tns:IslamicHoliday)))
+         (edn-config/tag->holiday :tns:IslamicHoliday)))
 
   (is (= :fixed-weekday
-         (xml-edn/tag->holiday :tns:FixedWeekday)))
+         (edn-config/tag->holiday :tns:FixedWeekday)))
 
   (is (= :hindu-holiday
-         (xml-edn/tag->holiday :tns:HinduHoliday)))
+         (edn-config/tag->holiday :tns:HinduHoliday)))
 
   (is (= :hebrew-holiday
-         (xml-edn/tag->holiday :tns:HebrewHoliday)))
+         (edn-config/tag->holiday :tns:HebrewHoliday)))
 
   (is (= :fixed-weekday-between-fixed
-         (xml-edn/tag->holiday :tns:FixedWeekdayBetweenFixed)))
+         (edn-config/tag->holiday :tns:FixedWeekdayBetweenFixed)))
 
   (is (= :fixed-weekday-relative-to-fixed
-         (xml-edn/tag->holiday :tns:FixedWeekdayRelativeToFixed)))
+         (edn-config/tag->holiday :tns:FixedWeekdayRelativeToFixed)))
 
   (is (= :relative-to-weekday-in-month
-         (xml-edn/tag->holiday :tns:RelativeToWeekdayInMonth)))
+         (edn-config/tag->holiday :tns:RelativeToWeekdayInMonth)))
 
   (is (= :relative-to-fixed
-         (xml-edn/tag->holiday :tns:RelativeToFixed)))
+         (edn-config/tag->holiday :tns:RelativeToFixed)))
 
   (is (= :relative-to-easter-sunday
-         (xml-edn/tag->holiday :tns:RelativeToEasterSunday)))
+         (edn-config/tag->holiday :tns:RelativeToEasterSunday)))
 
   (is (= :ethiopian-orthodox-holiday
-         (xml-edn/tag->holiday :tns:EthiopianOrthodoxHoliday)))
+         (edn-config/tag->holiday :tns:EthiopianOrthodoxHoliday)))
 
   (is (= :christian-holiday
-         (xml-edn/tag->holiday :tns:ChristianHoliday)))
+         (edn-config/tag->holiday :tns:ChristianHoliday)))
 
   (is (= :fixed
-         (xml-edn/tag->holiday :tns:Fixed))))
+         (edn-config/tag->holiday :tns:Fixed))))
 
 (defn xml->map
   ""
@@ -131,14 +131,14 @@
                                      weekday='MONDAY'/>
               </container>"
              xml->map
-             xml-edn/parse-moving-conditions))))
+             edn-config/parse-moving-conditions))))
 
 (deftest parse-holiday-test
   (testing "For fixed"
     (is (= {:holiday :fixed, :month :february, :day 28}
            (-> "<tns:Fixed month='FEBRUARY' day='28' />"
                xml->map
-               xml-edn/parse-holiday)))
+               edn-config/parse-holiday)))
 
     (is (= {:holiday           :fixed
             :month             :february
@@ -152,7 +152,7 @@
                                        weekday='MONDAY'/>
                 </tns:Fixed>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For relative to fixed"
     (is (= {:holiday         :relative-to-fixed
@@ -166,7 +166,7 @@
                   <tns:Date month='MAY' day='24'/>
   		</tns:RelativeToFixed>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (is (= {:holiday :relative-to-fixed
           :days    5
@@ -178,7 +178,7 @@
                 <tns:Date month='NOVEMBER' day='23'/>
               </tns:RelativeToFixed>"
              xml->map
-             xml-edn/parse-holiday)))
+             edn-config/parse-holiday)))
 
   (testing "For relative to weekday in month"
     (is (= {:holiday         :relative-to-weekday-in-month
@@ -194,7 +194,7 @@
 			<tns:FixedWeekday which='FIRST' weekday='MONDAY' month='MAY'/>
 		</tns:RelativeToWeekdayInMonth>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For fixed weekday in month"
     (is (= {:holiday         :fixed-weekday
@@ -210,13 +210,13 @@
                   validFrom='1968'
                   descriptionPropertiesKey='MEMORIAL'/>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For christian holiday"
     (is (= {:holiday :christian-holiday, :type :clean-monday, :chronology :julian}
            (-> "<tns:ChristianHoliday type='CLEAN_MONDAY' chronology='JULIAN' />"
                xml->map
-               xml-edn/parse-holiday)))
+               edn-config/parse-holiday)))
 
     (is (= {:holiday           :christian-holiday
             :type              :clean-monday
@@ -230,14 +230,14 @@
                                        weekday='MONDAY'/>
                 </tns:ChristianHoliday>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For islamic holiday"
     (is (= {:holiday :islamic-holiday
             :type    :id-ul-adha}
            (-> "<tns:IslamicHoliday type='ID_UL_ADHA'/>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For fixed weekday between fixed"
     (is (= {:holiday         :fixed-weekday-between-fixed
@@ -251,7 +251,7 @@
                   <tns:to month='NOVEMBER' day='6' />
                 </tns:FixedWeekdayBetweenFixed>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For fixed weekday relative to fixed"
     (is (= {:holiday         :fixed-weekday-relative-to-fixed
@@ -267,28 +267,28 @@
                   <tns:day month='APRIL' day='18'/>
                 </tns:FixedWeekdayRelativeToFixed>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For hindu holiday"
     (is (= {:holiday :hindu-holiday
             :type    :holi}
            (-> "<tns:HinduHoliday type='HOLI' />"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For hebrew holiday"
     (is (= {:holiday :hebrew-holiday
             :type    :yom-kippur}
            (-> "<tns:HebrewHoliday type='YOM_KIPPUR' />"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For ethiopian orthodox holiday"
     (is (= {:holiday :ethiopian-orthodox-holiday
             :type    :timkat}
            (-> "<tns:EthiopianOrthodoxHoliday type='TIMKAT'/>"
                xml->map
-               xml-edn/parse-holiday))))
+               edn-config/parse-holiday))))
 
   (testing "For relative to easter sunday"
     (is (= {:holiday    :relative-to-easter-sunday
@@ -299,15 +299,15 @@
                   <tns:days>12</tns:days>
                 </tns:RelativeToEasterSunday>"
                xml->map
-               xml-edn/parse-holiday)))))
+               edn-config/parse-holiday)))))
 
 (deftest sort-map-test
   (is (= "{:month :may, :day 1}"
          (-> {:day 1, :month :may}
-             xml-edn/sort-map
+             edn-config/sort-map
              pr-str)))
   (is (thrown-with-msg? Exception #"Unhandled keys :foo"
-                        (xml-edn/sort-map {:foo 1}))))
+                        (edn-config/sort-map {:foo 1}))))
 
 ;; Copyright 2018 Frederic Merizen
 ;;
