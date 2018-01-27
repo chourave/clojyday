@@ -9,8 +9,7 @@
 
   (:import
     (clojure.lang Named)
-   (de.jollyday HolidayCalendar HolidayManager ManagerParameter ManagerParameters)
-   (de.jollyday.caching HolidayManagerValueHandler)
+    (de.jollyday HolidayCalendar HolidayManager ManagerParameter)
     (de.jollyday.configuration ConfigurationProviderManager)
     (de.jollyday.datasource ConfigurationDataSourceManager)
     (de.jollyday.parameter CalendarPartManagerParameter UrlManagerParameter)
