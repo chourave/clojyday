@@ -7,8 +7,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojure.walk :refer [postwalk]]
-   [clojure.xml :as xml]
-   [clojyday.core :as clojyday])
+   [clojure.xml :as xml])
   (:import
    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType
                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
