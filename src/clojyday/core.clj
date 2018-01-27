@@ -16,6 +16,9 @@
    (java.util Locale)))
 
 
+(set! *warn-on-reflection* true)
+
+
 ;; Basic field types
 
 (s/def ::id keyword?)
@@ -59,7 +62,7 @@
     (assoc h
 
            :description
-           (.getCountryDescription resource-util locale description-key)
+           (.getCountryDescription ^ResourceUtil resource-util locale description-key)
 
            :zones
            (when zones
@@ -73,7 +76,7 @@
   "Build a map from Jollyday calendar hierarchy"
   ([calendar]
    (parse-calendar calendar ""))
-  ([calendar key-prefix]
+  ([^CalendarHierarchy calendar key-prefix]
    (let [id              (.getId calendar)
          description-key (str key-prefix id)
          key-prefix      (str description-key ".")]
@@ -100,7 +103,7 @@
 (defn calendar-hierarchy
   ""
   ([place]
-   (let [{::place/keys [zones manager]} (place/parse-place place)
+   (let [{::place/keys [zones ^HolidayManager manager]} (place/parse-place place)
          calendar (parse-calendar (.getCalendarHierarchy manager))]
      (if (seq zones)
        (get-in calendar (mapcat #(vector :zones (keyword %)) zones))
@@ -128,12 +131,12 @@
 (defrecord Holiday [date description description-key official?]
   Localized
   (-localize [h resource-util locale]
-    (assoc h :description (.getHolidayDescription resource-util locale description-key))))
+    (assoc h :description (.getHolidayDescription ^ResourceUtil resource-util locale description-key))))
 
 
 (defn parse-holiday
   ""
-  [holiday]
+  [^de.jollyday.Holiday holiday]
   (-> {:description-key (.getPropertiesKey holiday)
        :date            (.getDate holiday)
        :official?       (= HolidayType/OFFICIAL_HOLIDAY (.getType holiday))}
@@ -147,7 +150,7 @@
 (defn holidays
   ""
   [place date-or-interval]
-  (let [{::place/keys [zones manager]} (place/parse-place place)
+  (let [{::place/keys [zones ^HolidayManager manager]} (place/parse-place place)
         {::date/keys [year from to]}   (date/parse-date-or-interval date-or-interval)]
     (into #{}
           (map parse-holiday)
@@ -169,8 +172,9 @@
    (holiday? place date :any-holiday))
 
   ([place date type]
-   (let [{::place/keys [zones manager]} (place/parse-place place)]
-     (.isHoliday manager (time/local-date date) (holiday-types type) zones))))
+   (let [{::place/keys [^"[Ljava.lang.String;" zones
+                        ^HolidayManager ^HolidayManager manager]} (place/parse-place place)]
+     (.isHoliday manager (time/local-date date) ^HolidayType (holiday-types type) zones))))
 
 
 ;; Copyright 2018 Frederic Merizen
