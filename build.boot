@@ -16,6 +16,7 @@
  :dependencies
  '[[clojure.java-time                   "0.3.1"]
    [de.jollyday/jollyday                "0.5.3"]
+   [de.jollyday/jollyday                "0.5.3"        :scope "test" :classifier "sources"]
    [javax.xml.bind/jaxb-api             "2.3.0"        :scope "test"]
    [metosin/boot-alt-test               "0.3.2"        :scope "test"]
    [orchestra                           "2017.11.12-1" :scope "test"]
@@ -73,13 +74,16 @@
   (let [dir (tmp-dir!)]
     (with-pre-wrap [fileset]
       (empty-dir! dir)
-      (require '[clojyday.edn-config :as edn-config])
+      (require '[clojyday.core :as clojyday]
+               '[clojyday.edn-config :as edn-config])
       (let [xml->edn (resolve 'edn-config/xml->edn)
+            calendar-names (resolve 'clojyday/calendar-names)
             print (if pretty
                     (resolve 'edn-config/pretty-print)
                     (resolve 'edn-config/raw-print))]
-        (xml->edn dir print)
-        (commit! (add-resource fileset dir))))))
+        (doseq [cal  (calendar-names)]
+          (xml->edn dir print cal)))
+      (commit! (add-resource fileset dir)))))
 
 
 (deftask lein-generate

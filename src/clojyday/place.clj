@@ -8,14 +8,15 @@
    [clojyday.util :refer [$ string-array?]])
 
   (:import
+    (clojure.lang Named)
    (de.jollyday HolidayCalendar HolidayManager ManagerParameter ManagerParameters)
    (de.jollyday.caching HolidayManagerValueHandler)
-   (de.jollyday.configuration ConfigurationProviderManager)
-   (de.jollyday.datasource ConfigurationDataSourceManager)
-   (de.jollyday.parameter CalendarPartManagerParameter UrlManagerParameter)
-   (de.jollyday.util Cache Cache$ValueHandler ClassLoadingUtil)
-   (java.net URL)
-   (java.util Locale)))
+    (de.jollyday.configuration ConfigurationProviderManager)
+    (de.jollyday.datasource ConfigurationDataSourceManager)
+    (de.jollyday.parameter CalendarPartManagerParameter UrlManagerParameter)
+    (de.jollyday.util Cache Cache$ValueHandler ClassLoadingUtil)
+    (java.net URL)
+    (java.util Locale)))
 
 
 ;; Basic type predicates
@@ -75,6 +76,19 @@
   (ConfigurationProviderManager.))
 
 
+(defprotocol ConfigurationFormat
+  (configuration-data-source
+    [this parameters]
+    ""))
+
+
+(def jollyday-configuration-format
+  (reify ConfigurationFormat
+    (configuration-data-source [_ parameters]
+      (-> (ConfigurationDataSourceManager.)
+          (.getConfigurationDataSource parameters)))))
+
+
 (defn read-manager-impl-class-name
   "Reads the managers implementation class from the properties config file"
   [parameter]
@@ -98,33 +112,33 @@
               e)))))
 
 
-
 (defn holiday-manager-value-handler
   "Creates the ValueHandler which constructs a HolidayManager"
-  [parameter manager-class-name]
+  [parameter config-format manager-class-name]
   (reify Cache$ValueHandler
     (getKey [_]
       (.createCacheKey parameter))
     (createValue [_]
       (doto (instantiate-manager manager-class-name)
-        (.setConfigurationDataSource (.getConfigurationDataSource
-                                      (ConfigurationDataSourceManager.)
-                                      parameter))
+        (.setConfigurationDataSource (configuration-data-source config-format parameter))
         (.init parameter)))))
 
 
 (defn create-manager
   "Creates a new HolidayManager instance for the country
   and puts it to the manager cache"
-  [parameter]
+  [parameter config-format]
   (.mergeConfigurationProperties configuration-provider-manager parameter)
   (->> (read-manager-impl-class-name parameter)
-       (holiday-manager-value-handler parameter)
+       (holiday-manager-value-handler parameter config-format)
        (.get holiday-manager-cache)))
 
 
 (defprotocol ManagerParameterSource
-  (create-manager-parameters [source]))
+  (create-manager-parameters
+    [source]
+    ""))
+
 
 (extend-protocol ManagerParameterSource
   String
@@ -134,6 +148,10 @@
           (string/trim calendar-part))
         string/lower-case
         (CalendarPartManagerParameter. nil)))
+
+  Named
+  (create-manager-parameters [calendar-part]
+    (create-manager-parameters (name calendar-part)))
 
   nil
   (create-manager-parameters [_]
@@ -157,13 +175,16 @@
 (defn holiday-manager
   "A holiday manager for a given locale or calendar id"
   ([calendar]
-   (-> (holiday-calendars calendar)
-       (or calendar)
+   (holiday-manager calendar jollyday-configuration-format))
+  ([calendar config-format]
+   (-> (if (satisfies? ManagerParameterSource calendar)
+         calendar
+         (holiday-calendars calendar))
        create-manager-parameters
-       create-manager)))
+       (create-manager config-format))))
 
 (s/fdef holiday-manager
-  :args (s/cat :calendar `calendar-or-id)
+  :args (s/cat :calendar `calendar-or-id :config-format (s/? #(satisfies? ConfigurationFormat %)))
   :ret  ::manager)
 
 
@@ -171,7 +192,7 @@
   "Splits a place specification into a calendar and sub-zones"
   [place]
   (let [[calendar & zones]
-        (if (seqable? place) place [place])]
+        (if (coll? place) place [place])]
     {::zones   (into-array String (map name zones))
      ::manager (holiday-manager calendar)}))
 

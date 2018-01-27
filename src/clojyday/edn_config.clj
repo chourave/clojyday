@@ -2,21 +2,26 @@
 
 (ns clojyday.edn-config
   (:require
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.pprint :as pprint :refer [pprint]]
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojure.walk :refer [postwalk]]
-   [clojure.xml :as xml])
+   [clojure.xml :as xml]
+   [clojyday.place :as place])
   (:import
-   (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType
+   (de.jollyday ManagerParameter)
+   (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
                        Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
                        FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
-                       HinduHolidayType HolidayType IslamicHoliday IslamicHolidayType
-                       Month MovingCondition RelativeToEasterSunday RelativeToFixed
-                       RelativeToWeekdayInMonth Weekday When Which With)))
-
+                       HinduHolidayType HolidayType Holidays IslamicHoliday
+                       IslamicHolidayType Month MovingCondition RelativeToEasterSunday
+                       RelativeToFixed RelativeToWeekdayInMonth Weekday When Which With)
+   (de.jollyday.datasource ConfigurationDataSource)
+   (de.jollyday.parameter CalendarPartManagerParameter)
+   (java.io PushbackReader)))
 
 (s/def ::day (s/int-in 1 32))
 
@@ -453,12 +458,17 @@
   (pprint (sorted-configuration config) w))
 
 
+(defn cal-edn-path
+  ""
+  [cal]
+  (io/file "holidays" (str (name cal) "-holidays.edn")))
+
+
 (defn xml->edn
   ""
-  [target-dir print]
+  [target-dir print cal]
   (binding [pprint/*print-right-margin* 110]
-    (doseq [cal  (clojyday/calendars)
-            :let [f (io/file target-dir "holidays" (str (name cal) "-holidays.edn"))]]
+    (let [f (io/file target-dir (cal-edn-path cal))]
       (io/make-parents f)
       (print cal (io/writer f)))))
 
@@ -468,6 +478,94 @@
 (defmulti ->Holiday
   ""
   :holiday)
+
+
+(defn add-holidays
+  ""
+  [holidays all-holidays type]
+  (->> all-holidays
+       (filter #(instance? type %))
+       (.addAll holidays)))
+
+
+(defmacro dispatch-holidays
+  ""
+  [holidays & types]
+  (let [h (gensym "holidays")]
+    `(let [~h ~holidays]
+       (doto (Holidays.)
+         ~@(for [t types]
+             `(-> (~(symbol (str ".get" t))) (add-holidays ~h ~t)))))))
+
+
+(defn ->Holidays
+  ""
+  [config]
+  (let [holidays (map ->Holiday config)]
+    (doto
+        (dispatch-holidays holidays
+                           Fixed RelativeToFixed RelativeToWeekdayInMonth
+                           ChristianHoliday IslamicHoliday
+                           FixedWeekdayBetweenFixed FixedWeekdayRelativeToFixed
+                           HinduHoliday HebrewHoliday EthiopianOrthodoxHoliday
+                           RelativeToEasterSunday)
+      (-> (.getFixedWeekday) (add-holidays holidays FixedWeekdayInMonth)))))
+
+
+(declare add-sub-configurations!)
+
+
+(defn ->Configuration
+  ""
+  [config]
+  (doto (Configuration.)
+    (.setDescription (-> config :description))
+    (.setHierarchy (-> config :hierarchy name))
+    (.setHolidays (-> config :holidays ->Holidays))
+    (add-sub-configurations! config)))
+
+
+(defn add-sub-configurations!
+  ""
+  [configuration config]
+  (when-let [sub-configurations (some->> config :sub-configurations (map ->Configuration))]
+    (-> configuration .getSubConfigurations (.addAll sub-configurations))))
+
+
+(def edn-configuration-format
+  "Reads a Clojyday EDN calendar configuration file
+  to a Jollyday configuration object"
+  (reify
+    ConfigurationDataSource
+    (getConfiguration [_ parameters]
+      (-> ^ManagerParameter parameters
+          .createResourceUrl
+          io/reader
+          PushbackReader.
+          edn/read
+          ->Configuration))
+
+    place/ConfigurationFormat
+    (configuration-data-source [this _]
+      this)))
+
+
+(def xml-configuration-format
+  "Reads a Jollyday XML calendar configuration file
+  to a Jollyday configuration object, without relying on JAXB"
+  (reify
+    ConfigurationDataSource
+    (getConfiguration [_ parameters]
+      (-> ^ManagerParameter parameters
+          .createResourceUrl
+          io/input-stream
+          xml/parse
+          parse-configuration
+          ->Configuration))
+
+    place/ConfigurationFormat
+    (configuration-data-source [this _]
+      this)))
 
 
 ;; Fixed day
@@ -631,9 +729,9 @@
 (defmethod -parse-holiday :tns:FixedWeekdayRelativeToFixed [node]
   (-> node
       (parse-attributes
-       {:which ->keyword
+       {:which   ->keyword
         :weekday ->keyword
-        :when ->keyword})
+        :when    ->keyword})
       (assoc :date (-> node (element :day) parse-fixed))))
 
 (defmethod holiday-spec :fixed-weekday-relative-to-fixed [_]
@@ -687,7 +785,7 @@
 
 (defmethod -parse-holiday :tns:RelativeToEasterSunday [node]
   {:chronology (-> node (element :chronology) :content first ->keyword)
-   :days (-> node (element :days) :content first ->int)})
+   :days       (-> node (element :days) :content first ->int)})
 
 
 (defmethod holiday-spec :relative-to-easter-sunday [_]

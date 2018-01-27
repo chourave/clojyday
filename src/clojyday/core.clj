@@ -100,6 +100,18 @@
   :ret `calendar)
 
 
+(defn calendar-names
+  "List all the supported holiday calendars"
+  []
+  (into #{}
+        (map (comp keyword string/lower-case))
+        (HolidayManager/getSupportedCalendarCodes)))
+
+(s/fdef calendar-names
+  :args empty?
+  :ret  (s/coll-of place/holiday-calendars :kind set?))
+
+
 (defn calendar-hierarchy
   ""
   ([place]
@@ -115,15 +127,11 @@
 
 
 (defn calendars
-  "List all the supported holiday calendars"
+  ""
   []
-  (into #{}
-        (map (comp keyword string/lower-case))
-        (HolidayManager/getSupportedCalendarCodes)))
-
-(s/fdef calendars
-  :args empty?
-  :ret  (s/coll-of place/holiday-calendars :kind set?))
+  (into {}
+        (map #(vector % (calendar-hierarchy %)))
+        (calendar-names)))
 
 
 ;; Holidays

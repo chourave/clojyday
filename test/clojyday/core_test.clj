@@ -72,7 +72,7 @@
            :dk :ec :ee :es :et :fi :fr :gb :gr :hr :hu :ie :is :it :jp :kz :li
            :lt :lu :lv :md :me :mk :mt :mx :ng :ni :nl :no :nyse :nz :pa :pe
            :pl :pt :py :ro :rs :ru :se :si :sk :target :ua :us :uy :ve :za}
-         (clojyday/calendars))))
+         (clojyday/calendar-names))))
 
 
 ;; Holidays
