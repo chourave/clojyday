@@ -82,6 +82,16 @@
         (commit! (add-resource fileset dir))))))
 
 
+(deftask lein-generate
+  "Generate project.clj for Cursive"
+  []
+  (with-pass-thru [_]
+    (merge-env! :dependencies '[[onetom/boot-lein-generate "0.1.3" :scope "test"]])
+    (require '[boot.lein :as lein])
+    (let [lein-generate (resolve 'lein/generate-lein-project-file!)]
+      (lein-generate :keep-project true))))
+
+
 ;; Copyright 2018 Frederic Merizen
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");

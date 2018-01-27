@@ -1,3 +1,6 @@
 *~
-.nrepl-port
-target/
+/.nrepl-port
+/target/
+/.idea/
+/*.iml
+/project.clj
