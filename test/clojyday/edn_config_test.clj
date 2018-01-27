@@ -323,7 +323,7 @@
   [x]
   (and x
        (= "de.jollyday.config"
-          (-> x class (.getPackageName)))))
+          (-> x class .getPackage .getName))))
 
 (defn config-bean
   ""
