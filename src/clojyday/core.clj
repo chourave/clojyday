@@ -6,6 +6,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojyday.date :as date]
+   [clojyday.edn-config]                    ; For extra configuration formats
    [clojyday.localized :refer [-localize localized? Localized]]
    [clojyday.place :as place]
    [java-time :as time])
@@ -62,7 +63,10 @@
     (assoc h
 
            :description
-           (.getCountryDescription ^ResourceUtil resource-util locale description-key)
+           (.getCountryDescription
+             ^ResourceUtil resource-util
+             locale
+             description-key)
 
            :zones
            (when zones
@@ -112,17 +116,24 @@
   :ret  (s/coll-of place/holiday-calendars :kind set?))
 
 
+(def default-config-format :xml-clj)
+
 (defn calendar-hierarchy
   ""
   ([place]
-   (let [{::place/keys [zones ^HolidayManager manager]} (place/parse-place place)
+   (calendar-hierarchy default-config-format place))
+  ([config-format place]
+   (let [{::place/keys [zones ^HolidayManager manager]}
+         (place/parse-place config-format place)
+
          calendar (parse-calendar (.getCalendarHierarchy manager))]
      (if (seq zones)
        (get-in calendar (mapcat #(vector :zones (keyword %)) zones))
        calendar))))
 
 (s/fdef calendar-hierarchy
-  :args (s/cat :place `place/calendar-and-zones)
+  :args (s/cat :config-format (s/? place/format?)
+               :place `place/calendar-and-zones)
   :ret  `calendar)
 
 
@@ -139,7 +150,9 @@
 (defrecord Holiday [date description description-key official?]
   Localized
   (-localize [h resource-util locale]
-    (assoc h :description (.getHolidayDescription ^ResourceUtil resource-util locale description-key))))
+    (assoc h
+      :description
+      (.getHolidayDescription ^ResourceUtil resource-util locale description-key))))
 
 
 (defn parse-holiday
@@ -157,14 +170,19 @@
 
 (defn holidays
   ""
-  [place date-or-interval]
-  (let [{::place/keys [zones ^HolidayManager manager]} (place/parse-place place)
-        {::date/keys [year from to]}   (date/parse-date-or-interval date-or-interval)]
-    (into #{}
-          (map parse-holiday)
-          (if year
-            (.getHolidays manager year zones)
-            (.getHolidays manager from to zones)))))
+  ([place date-or-interval]
+   (holidays default-config-format place date-or-interval))
+  ([config-format place date-or-interval]
+   (let [{::place/keys [zones ^HolidayManager manager]}
+         (place/parse-place config-format place)
+
+         {::date/keys [year from to]}
+         (date/parse-date-or-interval date-or-interval)]
+     (into #{}
+           (map parse-holiday)
+           (if year
+             (.getHolidays manager year zones)
+             (.getHolidays manager from to zones))))))
 
 
 (def holiday-types
@@ -177,12 +195,23 @@
 (defn holiday?
   ""
   ([place date]
-   (holiday? place date :any-holiday))
+   (holiday? default-config-format place date :any-holiday))
 
   ([place date type]
+   (apply holiday?
+          (if (place/format? place)
+           [place date type :any-holiday]
+           [default-config-format place date type])))
+
+  ([config-format place date type]
    (let [{::place/keys [^"[Ljava.lang.String;" zones
-                        ^HolidayManager ^HolidayManager manager]} (place/parse-place place)]
-     (.isHoliday manager (time/local-date date) ^HolidayType (holiday-types type) zones))))
+                        ^HolidayManager ^HolidayManager manager]}
+         (place/parse-place config-format place)]
+     (.isHoliday
+       manager
+       (time/local-date date)
+       ^HolidayType (holiday-types type)
+       zones))))
 
 
 ;; Copyright 2018 Frederic Merizen

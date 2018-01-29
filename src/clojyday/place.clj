@@ -75,19 +75,6 @@
   (ConfigurationProviderManager.))
 
 
-(defprotocol ConfigurationFormat
-  (configuration-data-source
-    [this parameters]
-    ""))
-
-
-(def jollyday-configuration-format
-  (reify ConfigurationFormat
-    (configuration-data-source [_ parameters]
-      (-> (ConfigurationDataSourceManager.)
-          (.getConfigurationDataSource parameters)))))
-
-
 (defn read-manager-impl-class-name
   "Reads the managers implementation class from the properties config file"
   [parameter]
@@ -111,92 +98,162 @@
               e)))))
 
 
+(def ^{:private true} format-hierarchy
+  ""
+  (make-hierarchy))
+
+(defn add-format
+  ""
+  ([format]
+   (add-format format :any-format))
+  ([format parent]
+   (alter-var-root #'format-hierarchy derive format parent)
+   nil))
+
+(defn format?
+  ""
+  [f]
+  (isa? format-hierarchy f :any-format))
+
+(add-format :xml)
+(add-format :xml-jaxb :xml)
+
+
+(defn set-format!
+  ""
+  [p format]
+  (->> format
+       ((juxt namespace name))
+       (remove empty?)
+       (string/join "/")
+       (.setProperty p "clojyday.configuration-format")))
+
+
+(defn get-format
+  ""
+  [p]
+  (as-> p %
+        (.getProperty % "clojyday.configuration-format")
+        (string/split % #"/")
+        (apply keyword %)))
+
+
+(defmulti configuration-data-source
+          ""
+          get-format
+          :hierarchy #'format-hierarchy)
+
+
+(defmethod configuration-data-source :xml-jaxb
+  [parameters]
+  (-> (ConfigurationDataSourceManager.)
+      (.getConfigurationDataSource parameters)))
+
+
 (defn holiday-manager-value-handler
   "Creates the ValueHandler which constructs a HolidayManager"
-  [parameter config-format manager-class-name]
+  [parameter manager-class-name]
   (reify Cache$ValueHandler
     (getKey [_]
       (.createCacheKey parameter))
     (createValue [_]
       (doto (instantiate-manager manager-class-name)
-        (.setConfigurationDataSource (configuration-data-source config-format parameter))
+        (.setConfigurationDataSource (configuration-data-source parameter))
         (.init parameter)))))
 
 
 (defn create-manager
   "Creates a new HolidayManager instance for the country
   and puts it to the manager cache"
-  [parameter config-format]
+  [parameter]
   (.mergeConfigurationProperties configuration-provider-manager parameter)
   (->> (read-manager-impl-class-name parameter)
-       (holiday-manager-value-handler parameter config-format)
+       (holiday-manager-value-handler parameter)
        (.get holiday-manager-cache)))
 
 
-(defprotocol ManagerParameterSource
-  (create-manager-parameters
-    [source]
-    ""))
+(defmulti -create-manager-parameters
+  ""
+ #(vector (type %1) %2)
+ :hierarchy #'format-hierarchy)
 
 
-(extend-protocol ManagerParameterSource
-  String
-  (create-manager-parameters [calendar-part]
-    (-> (if (string/blank? calendar-part)
-          (-> (Locale/getDefault) (.getCountry))
-          (string/trim calendar-part))
-        string/lower-case
-        (CalendarPartManagerParameter. nil)))
+(defn normalized-calendar-part
+  [calendar-part]
+  (-> (if (string/blank? calendar-part)
+        (-> (Locale/getDefault) (.getCountry))
+        (string/trim calendar-part))
+      string/lower-case))
 
-  Named
-  (create-manager-parameters [calendar-part]
-    (create-manager-parameters (name calendar-part)))
 
-  nil
-  (create-manager-parameters [_]
-    (create-manager-parameters ""))
+(defmethod -create-manager-parameters [String :xml]
+  [calendar-part _]
+  (-> calendar-part
+      normalized-calendar-part
+      (CalendarPartManagerParameter. nil)))
 
-  Locale
-  (create-manager-parameters [lc]
-    (create-manager-parameters (.getCountry lc)))
 
-  HolidayCalendar
-  (create-manager-parameters [calendar]
-    (create-manager-parameters (.getId calendar)))
+(defmethod -create-manager-parameters [Named :any-format]
+  [calendar-part format]
+  (-create-manager-parameters (name calendar-part) format))
 
-  URL
-  (create-manager-parameters [calendar-file-url]
-    (UrlManagerParameter. calendar-file-url nil)))
 
+(defmethod -create-manager-parameters [nil :any-format]
+  [_ format]
+  (-create-manager-parameters "" format))
+
+
+(defmethod -create-manager-parameters [Locale :any-format]
+  [lc format]
+  (-create-manager-parameters (.getCountry lc) format))
+
+
+(defmethod -create-manager-parameters [HolidayCalendar :any-format]
+  [calendar format]
+  (-create-manager-parameters (.getId calendar) format))
+
+
+(defmethod -create-manager-parameters [URL :any-format]
+  [calendar-file-url _]
+  (UrlManagerParameter. calendar-file-url nil))
+
+
+(defn create-manager-parameters
+  ""
+  [calendar format]
+  (doto (-create-manager-parameters calendar format)
+    (set-format! format)))
 
 ;; Parsing a place
 
 (defn holiday-manager
   "A holiday manager for a given locale or calendar id"
-  ([calendar]
-   (holiday-manager calendar jollyday-configuration-format))
-  ([calendar config-format]
-   (-> (if (satisfies? ManagerParameterSource calendar)
-         calendar
-         (holiday-calendars calendar))
-       create-manager-parameters
-       (create-manager config-format))))
+  (^HolidayManager [calendar]
+   (holiday-manager :xml-jaxb calendar))
+  (^HolidayManager [config-format calendar]
+   (-> (get holiday-calendars calendar calendar)
+       (create-manager-parameters config-format)
+       create-manager)))
 
 (s/fdef holiday-manager
-  :args (s/cat :calendar `calendar-or-id :config-format (s/? #(satisfies? ConfigurationFormat %)))
+  :args (s/cat :config-format (s/? format?)
+               :calendar `calendar-or-id)
   :ret  ::manager)
 
 
 (defn parse-place
   "Splits a place specification into a calendar and sub-zones"
-  [place]
-  (let [[calendar & zones]
-        (if (coll? place) place [place])]
-    {::zones   (into-array String (map name zones))
-     ::manager (holiday-manager calendar)}))
+  ([place]
+   (parse-place :xml-jaxb place))
+  ([config-format place]
+   (let [[calendar & zones]
+         (if (coll? place) place [place])]
+     {::zones   (into-array String (map name zones))
+      ::manager (holiday-manager config-format calendar)})))
 
 (s/fdef parse-place
-  :args (s/cat :place `calendar-and-zones)
+  :args (s/cat :config-format (s/? format?)
+               :place `calendar-and-zones)
   :ret  (s/keys :req [::zones ::manager]))
 
 

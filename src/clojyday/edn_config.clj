@@ -11,17 +11,18 @@
    [clojure.xml :as xml]
    [clojyday.place :as place])
   (:import
-   (de.jollyday ManagerParameter)
-   (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
-                       EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
-                       Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
-                       FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
-                       HinduHolidayType HolidayType Holidays IslamicHoliday
-                       IslamicHolidayType Month MovingCondition RelativeToEasterSunday
-                       RelativeToFixed RelativeToWeekdayInMonth Weekday When Which With)
-   (de.jollyday.datasource ConfigurationDataSource)
-   (de.jollyday.parameter CalendarPartManagerParameter)
-   (java.io PushbackReader)))
+    (de.jollyday ManagerParameter)
+    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
+                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
+                        Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
+                        FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
+                        HinduHolidayType HolidayType Holidays IslamicHoliday
+                        IslamicHolidayType Month MovingCondition RelativeToEasterSunday
+                        RelativeToFixed RelativeToWeekdayInMonth Weekday When Which With)
+    (de.jollyday.datasource ConfigurationDataSource)
+    (de.jollyday.parameter CalendarPartManagerParameter)
+    (java.io PushbackReader)
+    (de.jollyday.util ResourceUtil)))
 
 (s/def ::day (s/int-in 1 32))
 
@@ -67,7 +68,7 @@
                                                        :text (s/? string?)))))
 
 (s/def xml-node
-  (s/keys req-un [:xml/tag :xml/attrs :xml/content]))
+  (s/keys :req-un [:xml/tag :xml/attrs :xml/content]))
 
 
 (defn read-xml
@@ -531,28 +532,12 @@
   (when-let [sub-configurations (some->> config :sub-configurations (map ->Configuration))]
     (-> configuration .getSubConfigurations (.addAll sub-configurations))))
 
-
-(def edn-configuration-format
-  "Reads a Clojyday EDN calendar configuration file
-  to a Jollyday configuration object"
-  (reify
-    ConfigurationDataSource
-    (getConfiguration [_ parameters]
-      (-> ^ManagerParameter parameters
-          .createResourceUrl
-          io/reader
-          PushbackReader.
-          edn/read
-          ->Configuration))
-
-    place/ConfigurationFormat
-    (configuration-data-source [this _]
-      this)))
+(place/add-format :xml-clj :xml)
+(place/add-format :edn)
 
 
-(def xml-configuration-format
-  "Reads a Jollyday XML calendar configuration file
-  to a Jollyday configuration object, without relying on JAXB"
+(defmethod place/configuration-data-source :xml-clj
+  [_]
   (reify
     ConfigurationDataSource
     (getConfiguration [_ parameters]
@@ -561,11 +546,30 @@
           io/input-stream
           xml/parse
           parse-configuration
-          ->Configuration))
+          ->Configuration))))
 
-    place/ConfigurationFormat
-    (configuration-data-source [this _]
-      this)))
+
+(defmethod place/configuration-data-source :edn
+  [_]
+  (reify
+    ConfigurationDataSource
+    (getConfiguration [_ parameters]
+      (-> ^ManagerParameter parameters
+          .createResourceUrl
+          io/reader
+          PushbackReader.
+          edn/read
+          ->Configuration))))
+
+
+(defmethod place/-create-manager-parameters [String :edn]
+  [calendar-part _]
+  (proxy [CalendarPartManagerParameter] [(place/normalized-calendar-part calendar-part) nil]
+    (createResourceUrl []
+      (->> calendar-part
+           cal-edn-path
+           str
+          (.getResource (ResourceUtil.))))))
 
 
 ;; Fixed day

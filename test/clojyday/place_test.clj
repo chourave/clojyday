@@ -3,7 +3,6 @@
 (ns clojyday.place-test
 
   (:require
-   [clojure.spec.alpha :as s]
    [clojure.test :refer [deftest is join-fixtures testing use-fixtures]]
    [clojyday.jaxb-utils :refer [jaxb-fixture]]
    [clojyday.place :as place]
@@ -11,8 +10,8 @@
    [clojyday.util :as util])
 
   (:import
-   (de.jollyday HolidayCalendar)
-   (java.util Locale)))
+    (de.jollyday HolidayCalendar)
+    (java.util Locale Properties)))
 
 
 ;; Fixtures
@@ -28,6 +27,29 @@
     (is (place/locale? (Locale/FRANCE)))
     (is (not (place/locale? :france)))))
 
+
+(deftest foramt?-test
+  (is (place/format? :any-format))
+  (is (place/format? :xml))
+  (is (place/format? :xml-clj))
+  (is (place/format? :xml-jaxb))
+  (is (place/format? :edn))
+  (is (not (place/format? :random))))
+
+
+;;
+
+(deftest format-properties-test
+  (testing "with namespaced keyword"
+    (is (= :foo/bar
+           (-> (doto (Properties.)
+                 (place/set-format! :foo/bar))
+               place/get-format))))
+  (testing "with plain keyword"
+    (is (= :foo
+           (-> (doto (Properties.)
+                 (place/set-format! :foo))
+               place/get-format)))))
 
 ;; Parsing a place
 
