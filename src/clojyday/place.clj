@@ -228,31 +228,27 @@
 
 (defn holiday-manager
   "A holiday manager for a given locale or calendar id"
-  (^HolidayManager [calendar]
-   (holiday-manager :xml-jaxb calendar))
   (^HolidayManager [config-format calendar]
    (-> (get holiday-calendars calendar calendar)
        (create-manager-parameters config-format)
        create-manager)))
 
 (s/fdef holiday-manager
-  :args (s/cat :config-format (s/? format?)
+  :args (s/cat :config-format format?
                :calendar `calendar-or-id)
   :ret  ::manager)
 
 
 (defn parse-place
   "Splits a place specification into a calendar and sub-zones"
-  ([place]
-   (parse-place :xml-jaxb place))
-  ([config-format place]
-   (let [[calendar & zones]
-         (if (coll? place) place [place])]
-     {::zones   (into-array String (map name zones))
-      ::manager (holiday-manager config-format calendar)})))
+  [config-format place]
+  (let [[calendar & zones]
+        (if (coll? place) place [place])]
+    {::zones   (into-array String (map name zones))
+     ::manager (holiday-manager config-format calendar)}))
 
 (s/fdef parse-place
-  :args (s/cat :config-format (s/? format?)
+  :args (s/cat :config-format format?
                :place `calendar-and-zones)
   :ret  (s/keys :req [::zones ::manager]))
 

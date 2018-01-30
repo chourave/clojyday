@@ -56,19 +56,19 @@
 (deftest holiday-manager-test
   (testing "With a locale keyword identifier"
     (is (= "fr"
-           (-> (place/holiday-manager :fr)
+           (-> (place/holiday-manager :xml-jaxb :fr)
                (.getCalendarHierarchy) (.getId)))))
   (testing "With a locale string identifier"
     (is (= "fr"
-           (-> (place/holiday-manager "fr")
+           (-> (place/holiday-manager :xml-jaxb "fr")
                (.getCalendarHierarchy) (.getId)))))
   (testing "With a Java locale"
     (is (= "fr"
-           (-> (place/holiday-manager Locale/FRANCE)
+           (-> (place/holiday-manager :xml-jaxb Locale/FRANCE)
                (.getCalendarHierarchy) (.getId)))))
   (testing "With a an existing holiday calendar"
     (is (= "fr"
-           (-> (place/holiday-manager (HolidayCalendar/FRANCE))
+           (-> (place/holiday-manager :xml-jaxb (HolidayCalendar/FRANCE))
                (.getCalendarHierarchy) (.getId)))))
   (testing "With a configuration file URL"
     "TODO"))
@@ -76,18 +76,18 @@
 
 (deftest parse-place-test
   (testing "With a single arument, give holidays for the whole country"
-    (let [{::place/keys [manager zones]} (place/parse-place :fr)]
+    (let [{::place/keys [manager zones]} (place/parse-place :xml-jaxb :fr)]
 
       (is (util/string-array? zones))
       (is (nil? (seq zones)))
-      (is (= (place/holiday-manager :fr) manager))))
+      (is (= (place/holiday-manager :xml-jaxb :fr) manager))))
 
   (testing "More arguments are translated into zones"
-    (let [{::place/keys [manager zones]} (place/parse-place [:fr :br])]
+    (let [{::place/keys [manager zones]} (place/parse-place :xml-jaxb [:fr :br])]
 
       (is (util/string-array? zones))
       (is (= ["br"]  (seq zones)))
-      (is (= (place/holiday-manager :fr) manager)))))
+      (is (= (place/holiday-manager :xml-jaxb :fr) manager)))))
 
 
 ;; Copyright 2018 Frederic Merizen
