@@ -50,7 +50,7 @@
 
 (s/fdef localize
   :args (s/cat :localized localized?, :locale (s/? place/locale?))
-  :ret (s/keys :req-un [::description])
+  :ret any?
   :fn #(= (-> % :args :localized type)
           (-> % :ret type)))
 
@@ -136,13 +136,21 @@
                :place `place/calendar-and-zones)
   :ret  `calendar)
 
+(defrecord Calendars []
+  Localized
+  (-localize [cs resource-util locale]
+    (->> cs
+         (into {} (map #(vector (key %) (-localize (val %) resource-util locale))))
+         map->Calendars)))
+
 
 (defn calendars
   ""
   []
-  (into {}
-        (map #(vector % (calendar-hierarchy %)))
-        (calendar-names)))
+  (->> (calendar-names)
+       (into {}
+             (map #(vector % (calendar-hierarchy %))))
+       map->Calendars))
 
 
 ;; Holidays

@@ -67,12 +67,24 @@
                (get-in [:zones :by, :zones :mu, :description]))))))
 
 
-(deftest calendars-test
+(deftest calendar-names-test
   (is (= #{:al :ar :at :au :ba :be :bg :bo :br :by :ca :ch :cl :co :cr :cz :de
            :dk :ec :ee :es :et :fi :fr :gb :gr :hr :hu :ie :is :it :jp :kz :li
            :lt :lu :lv :md :me :mk :mt :mx :ng :ni :nl :no :nyse :nz :pa :pe
            :pl :pt :py :ro :rs :ru :se :si :sk :target :ua :us :uy :ve :za}
          (clojyday/calendar-names))))
+
+
+(deftest calendars-test
+  (is (=  {:id :dk, :description nil, :description-key "dk", :zones nil}
+          (->> (clojyday/calendars)
+               :dk
+               (into {}))))
+  (is (=  {:id :dk, :description "Danemark", :description-key "dk", :zones nil}
+          (as-> (clojyday/calendars) %
+               (clojyday/localize % Locale/FRENCH)
+               (:dk %)
+               (into {} %)))))
 
 
 ;; Holidays
