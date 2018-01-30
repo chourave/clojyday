@@ -61,7 +61,7 @@
 
 (s/def :xml/tag keyword?)
 
-(s/def :xml/attrs (s/nilable (s/map-of :key :string)))
+(s/def :xml/attrs (s/nilable (s/map-of keyword? string?)))
 
 (s/def :xml/content (s/cat :first-text (s/? string?)
                            :nodes-and-text (s/* (s/cat :node `xml-node
