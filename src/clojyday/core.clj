@@ -116,10 +116,12 @@
   :ret  (s/coll-of place/holiday-calendars :kind set?))
 
 
-(def default-config-format :xml-clj)
+(def default-config-format
+  "The calendar configuration file format that will be used when none is specified"
+  :xml-clj)
 
 (defn calendar-hierarchy
-  ""
+  "Returns the id and (localizable) descriptions of a geographical place and its subdivisions"
   ([place]
    (calendar-hierarchy default-config-format place))
   ([config-format place]
@@ -145,7 +147,8 @@
 
 
 (defn calendars
-  ""
+  "Returns the ids and (localizable) descriptions of all places that have predefined
+  calendar rules, among with their subdivisions"
   []
   (->> (calendar-names)
        (into {}
@@ -164,7 +167,7 @@
 
 
 (defn parse-holiday
-  ""
+  "Parse a Jollyday holliday object into a clojure localizable record"
   [^de.jollyday.Holiday holiday]
   (-> {:description-key (.getPropertiesKey holiday)
        :date            (.getDate holiday)
@@ -177,7 +180,7 @@
 
 
 (defn holidays
-  ""
+  "Returns the holidays in a given place over a given time period"
   ([place date-or-interval]
    (holidays default-config-format place date-or-interval))
   ([config-format place date-or-interval]
@@ -194,14 +197,14 @@
 
 
 (def holiday-types
-  ""
+  "All valid holiday types (for `holiday?`)"
   {:official-holiday   HolidayType/OFFICIAL_HOLIDAY
    :unofficial-holiday HolidayType/UNOFFICIAL_HOLIDAY
    :any-holiday        nil})
 
 
 (defn holiday?
-  ""
+  "Is a given date a holiday in a given place?"
   ([place date]
    (holiday? default-config-format place date :any-holiday))
 
