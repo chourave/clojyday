@@ -156,6 +156,11 @@
        map->Calendars))
 
 
+(s/fdef calendars
+  :args (s/cat)
+  :ret (s/map-of keyword? `calendar))
+
+
 ;; Holidays
 
 (defrecord Holiday [date description description-key official?]
@@ -195,6 +200,12 @@
              (.getHolidays manager year zones)
              (.getHolidays manager from to zones))))))
 
+(s/fdef holidays
+  :args (s/cat :config-format (s/? place/format?)
+               :place `place/calendar-and-zones
+               :date-or-interval `date/date-or-interval)
+  :ret (s/coll-of `holiday :kind set?))
+
 
 (def holiday-types
   "All valid holiday types (for `holiday?`)"
@@ -223,6 +234,13 @@
        (time/local-date date)
        ^HolidayType (holiday-types type)
        zones))))
+
+(s/fdef holiday?
+  :args (s/cat :config-format (s/? place/format?)
+               :place `place/calendar-and-zones
+               :date `date/date-or-interval
+               :type (s/? #(contains? holiday-types %)))
+  :ret boolean?)
 
 
 ;; Copyright 2018 Frederic Merizen
