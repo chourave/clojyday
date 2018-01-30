@@ -1,11 +1,13 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.edn-config-test
-  (:require [clojure.test :refer [deftest is testing use-fixtures]]
-            [clojure.walk :refer [prewalk]]
-            [clojure.xml :as xml]
-            [clojyday.edn-config :as edn-config]
-            [clojyday.spec-test-utils :refer [instrument-fixture]])
+  (:require
+   [clojure.test :refer [deftest is testing use-fixtures]]
+   [clojure.walk :refer [prewalk]]
+   [clojure.xml :as xml]
+   [clojyday.edn-config :as edn-config]
+   [clojyday.place :as place]
+   [clojyday.spec-test-utils :refer [instrument-fixture]])
   (:import
    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
@@ -36,6 +38,14 @@
     {:tag     :tns:Pet
      :attrs   {:name "Rantanplan"}
      :content []}]})
+
+
+;;
+
+(deftest format?-test
+  (is (place/format? :xml-clj))
+  (is (place/format? :edn)))
+
 
 (deftest attribute-test
   (is (= "the Daltons"

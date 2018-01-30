@@ -31,9 +31,7 @@
 (deftest foramt?-test
   (is (place/format? :any-format))
   (is (place/format? :xml))
-  (is (place/format? :xml-clj))
   (is (place/format? :xml-jaxb))
-  (is (place/format? :edn))
   (is (not (place/format? :random))))
 
 
