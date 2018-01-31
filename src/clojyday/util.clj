@@ -2,7 +2,8 @@
 
 (ns clojyday.util
   (:require
-   [clojure.spec.alpha :as s]))
+   [clojure.spec.alpha :as s]
+   [clojure.string :as string]))
 
 
 ;; Basic type predicates
@@ -32,6 +33,73 @@
   :ret  any?
   :fn   #(= (:ret %)
             ((get-in % [:args :f]) (get-in % [:args :x]))))
+
+
+;; String manipulation
+
+(defn equals-ignore-case?
+  "Case insensitive string comparison"
+  [s1 s2]
+  (= (-> s1 string/lower-case)
+     (-> s2 string/lower-case)))
+
+(s/fdef equals-ignore-case?
+  :args (s/cat :s1 string? :s2 string?)
+  :ret boolean?)
+
+
+(defn lowercase?
+  "Does `s` contain no upper case characters?"
+  [s]
+  (= s (string/lower-case s)))
+
+(s/fdef lowercase?
+  :args (s/cat :s string?)
+  :ret boolean?)
+
+
+(defn strip
+  "Remvoe any occurrences of `to-strip` in `s`"
+  [s to-strip]
+  (string/replace s to-strip ""))
+
+(s/fdef strip
+  :args (s/cat :s string? :to-strip string?)
+  :ret string?)
+
+
+(defn kebab->camel
+  "Turn kebab-case strings into camelCase"
+  [s]
+  (let [[head & tail] (string/split s #"-")]
+    (apply str
+           head
+           (map string/capitalize tail))))
+
+(s/fdef kebab->camel
+  :args (s/cat :s string?)
+  :ret string?
+  :fn #(equals-ignore-case?
+        (:ret %)
+        (-> % :args :s (strip "-"))))
+
+
+(defn camel->kebab
+  "Turn camelCase (and PascalCase) strings into kebab-case"
+  [s]
+  (as-> s %
+    (string/split % #"(?=[A-Z])")
+    (string/join \- %)
+    (string/lower-case %)))
+
+(s/fdef camel->kebab
+  :args (s/cat :s string?)
+  :ret string?
+  :fn (s/and
+       #(-> % :ret lowercase?)
+       #(equals-ignore-case?
+         (-> % :ret (strip "-"))
+         (-> % :args :s))))
 
 
 ;; Copyright 2018 Frederic Merizen

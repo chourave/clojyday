@@ -67,15 +67,6 @@
           :content []}
          (edn-config/element testing-xml :Pet))))
 
-(deftest kebab->camel-test
-  (is (= "abacaba" (edn-config/kebab->camel "abacaba")))
-  (is (= "abaCaba" (edn-config/kebab->camel "aba-caba"))))
-
-(deftest camel->kebab-test
-  (is (= "abacaba" (edn-config/camel->kebab "abacaba")))
-  (is (= "aba-caba" (edn-config/camel->kebab "abaCaba")))
-  (is (= "aba-caba" (edn-config/camel->kebab "AbaCaba"))))
-
 (deftest parse-attributes-test
   (is (= {} (edn-config/parse-attributes testing-xml {})))
   (is (= {:type :family}

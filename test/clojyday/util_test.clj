@@ -31,6 +31,19 @@
     (is (= "3" (util/$ str 3)))))
 
 
+;; String manipulation
+
+(deftest kebab->camel-test
+  (is (= "abacaba" (util/kebab->camel "abacaba")))
+  (is (= "abaCaba" (util/kebab->camel "aba-caba"))))
+
+
+(deftest camel->kebab-test
+  (is (= "abacaba" (util/camel->kebab "abacaba")))
+  (is (= "aba-caba" (util/camel->kebab "abaCaba")))
+  (is (= "aba-caba" (util/camel->kebab "AbaCaba"))))
+
+
 ;; Copyright 2018 Frederic Merizen
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");

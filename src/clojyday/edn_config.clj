@@ -9,7 +9,8 @@
    [clojure.string :as string]
    [clojure.walk :refer [postwalk]]
    [clojure.xml :as xml]
-   [clojyday.place :as place])
+   [clojyday.place :as place]
+   [clojyday.util :as util])
   (:import
     (de.jollyday ManagerParameter)
     (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
@@ -119,73 +120,6 @@
   :ret (s/nilable `xml-node))
 
 
-;; String manipulation
-
-(defn equals-ignore-case?
-  "Case insensitive string comparison"
-  [s1 s2]
-  (= (-> s1 string/lower-case)
-     (-> s2 string/lower-case)))
-
-(s/fdef equals-ignore-case?
-  :args (s/cat :s1 string? :s2 string?)
-  :ret boolean?)
-
-
-(defn lowercase?
-  "Does `s` contain no upper case characters?"
-  [s]
-  (= s (string/lower-case s)))
-
-(s/fdef lowercase?
-  :args (s/cat :s string?)
-  :ret boolean?)
-
-
-(defn strip
-  "Remvoe any occurrences of `to-strip` in `s`"
-  [s to-strip]
-  (string/replace s to-strip ""))
-
-(s/fdef strip
-  :args (s/cat :s string? :to-strip string?)
-  :ret string?)
-
-
-(defn kebab->camel
-  "Turn kebab-case strings into camelCase"
-  [s]
-  (let [[head & tail] (string/split s #"-")]
-    (apply str
-           head
-           (map string/capitalize tail))))
-
-(s/fdef kebab->camel
-  :args (s/cat :s string?)
-  :ret string?
-  :fn #(equals-ignore-case?
-        (:ret %)
-        (-> % :args :s (strip "-"))))
-
-
-(defn camel->kebab
-  "Turn camelCase (and PascalCase) strings into kebab-case"
-  [s]
-  (as-> s %
-    (string/split % #"(?=[A-Z])")
-    (string/join \- %)
-    (string/lower-case %)))
-
-(s/fdef camel->kebab
-  :args (s/cat :s string?)
-  :ret string?
-  :fn (s/and
-       #(-> % :ret lowercase?)
-       #(equals-ignore-case?
-         (-> % :ret (strip "-"))
-         (-> % :args :s))))
-
-
 (defn ->const-name
   "Parse a :clojure-keyword to a JAVA_CONSTANT_NAME (as a strig)"
   [x]
@@ -209,7 +143,7 @@
   (reduce
    (fn [res [att f]]
      (let [att (name att)]
-       (if-let [v (attribute node (keyword (kebab->camel att)))]
+       (if-let [v (attribute node (keyword (util/kebab->camel att)))]
          (assoc res
                 (keyword att)
                 (f v))
@@ -244,9 +178,9 @@
 (s/fdef ->keyword
   :args (s/cat :s string?)
   :ret keyword?
-  :fn #(equals-ignore-case?
-        (-> % :ret name (strip "-"))
-        (-> % :args :s (strip "_"))))
+  :fn #(util/equals-ignore-case?
+        (-> % :ret name (util/strip "-"))
+        (-> % :args :s (util/strip "_"))))
 
 
 (defmacro ->enum
@@ -323,7 +257,7 @@
       name
       (string/split #":")
       fnext
-      camel->kebab
+      util/camel->kebab
       keyword))
 
 (s/fdef tag->holiday
