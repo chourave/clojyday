@@ -11,7 +11,8 @@
 
   (:import
     (de.jollyday HolidayCalendar)
-    (java.util Locale Properties)))
+    (de.jollyday.parameter UrlManagerParameter)
+    (java.util Locale)))
 
 
 ;; Fixtures
@@ -28,7 +29,7 @@
     (is (not (place/locale? :france)))))
 
 
-(deftest foramt?-test
+(deftest format?-test
   (is (place/format? :any-format))
   (is (place/format? :xml))
   (is (place/format? :xml-jaxb))
@@ -37,17 +38,24 @@
 
 ;;
 
+
+
 (deftest format-properties-test
-  (testing "with namespaced keyword"
-    (is (= :foo/bar
-           (-> (doto (Properties.)
-                 (place/set-format! :foo/bar))
-               place/get-format))))
-  (testing "with plain keyword"
-    (is (= :foo
-           (-> (doto (Properties.)
-                 (place/set-format! :foo))
-               place/get-format)))))
+  (let [old-hierarchy @#'place/format-hierarchy]
+    (with-redefs [place/format-hierarchy (-> (make-hierarchy)
+                                             (derive :foo :foo/bar)
+                                             (derive :foo/bar :any-format))]
+      (testing "with namespaced keyword"
+        (is (= :foo/bar
+               (-> (doto (UrlManagerParameter. nil nil)
+                     (place/set-format! :foo/bar))
+                   place/get-format))))
+      (testing "with plain keyword"
+        (is (= :foo
+               (-> (doto (UrlManagerParameter. nil nil)
+                     (place/set-format! :foo))
+                   place/get-format)))))))
+
 
 ;; Parsing a place
 

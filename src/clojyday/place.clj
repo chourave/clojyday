@@ -5,7 +5,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojyday.util :refer [$ string-array?]])
+   [clojyday.util :as util])
 
   (:import
     (clojure.lang Named)
@@ -20,6 +20,14 @@
 
 ;; Basic type predicates
 
+(defn cache-value-handler?
+  "Is the argument a Jollyday cache value handler?"
+  [x]
+  (instance? Cache$ValueHandler x))
+
+(s/fdef cache-value-handler?, :args any?, :ret boolean?)
+
+
 (defn locale?
   "Is the argument a Java Locale?"
   [x]
@@ -28,9 +36,17 @@
 (s/fdef locale?, :args any?, :ret boolean?)
 
 
+(defn parameter?
+  "Is the argument a Jollyday manager parameter?"
+  [x]
+  (instance? ManagerParameter x))
+
+(s/fdef parameter?, :args any?, :ret boolean?)
+
+
 ;; Basic field types
 
-(s/def ::zones string-array?)
+(s/def ::zones util/string-array?)
 
 (s/def ::manager #(instance? HolidayManager %))
 
@@ -57,10 +73,16 @@
         :calendar #(instance? HolidayCalendar %)
         :file-url #(instance? URL %)))
 
+
 (s/def calendar-and-zones
   (s/or :bare-calendar      `calendar-or-id
         :calendar-with-zone (s/cat :calendar `calendar-or-id
                                    :zone (s/* keyword?))))
+
+
+(s/def manager-class-name
+  (s/and string?
+         #(.isAssignableFrom HolidayManager (Class/forName %))))
 
 
 ;; Jollyday HolidayManager instance creation
@@ -85,6 +107,11 @@
                    "'. Cannot create manager.")))))
 
 
+(s/fdef read-manager-impl-class-name
+  :args (s/cat :parameter parameter?)
+  :ret string?)
+
+
 (defn instantiate-manager
   "Instantiates the manager implementing class"
   [manager-class-name]
@@ -98,9 +125,17 @@
               e)))))
 
 
+(s/fdef instantiate-manager
+  :args (s/cat :manager-class-name `manager-class-name)
+  :ret #(instance? HolidayManager %)
+  :fn #(= (-> % :args :manager-class-name)
+          (-> % :ret type .getName)))
+
+
 (def ^{:private true} format-hierarchy
   ""
   (make-hierarchy))
+
 
 (defn add-format
   ""
@@ -110,10 +145,21 @@
    (alter-var-root #'format-hierarchy derive format parent)
    nil))
 
+(s/fdef add-format
+  :args (s/cat :format keyword?
+               :parent (s/? keyword?))
+  :ret nil?)
+
+
 (defn format?
   ""
   [f]
   (isa? format-hierarchy f :any-format))
+
+(s/fdef format?
+  :args (s/cat :f keyword?)
+  :ret boolean?)
+
 
 (add-format :xml)
 (add-format :xml-jaxb :xml)
@@ -128,6 +174,11 @@
        (string/join "/")
        (.setProperty p "clojyday.configuration-format")))
 
+(s/fdef set-format!
+  :args (s/cat :p parameter?
+               :format format?)
+  :ret nil?)
+
 
 (defn get-format
   ""
@@ -137,11 +188,15 @@
         (string/split % #"/")
         (apply keyword %)))
 
+(s/fdef get-format
+  :args (s/cat :p parameter?)
+  :ret format?)
+
 
 (defmulti configuration-data-source
-          ""
-          get-format
-          :hierarchy #'format-hierarchy)
+  ""
+  get-format
+  :hierarchy #'format-hierarchy)
 
 
 (defmethod configuration-data-source :xml-jaxb
@@ -161,6 +216,10 @@
         (.setConfigurationDataSource (configuration-data-source parameter))
         (.init parameter)))))
 
+(s/fdef holiday-manager-value-handler
+  :args (s/cat :parameter parameter?, :manager-class-name `manager-class-name)
+  :ret cache-value-handler?)
+
 
 (defn create-manager
   "Creates a new HolidayManager instance for the country
@@ -170,6 +229,10 @@
   (->> (read-manager-impl-class-name parameter)
        (holiday-manager-value-handler parameter)
        (.get holiday-manager-cache)))
+
+(s/fdef create-manager
+  :args (s/cat :parameter parameter?)
+  :ret ::manager)
 
 
 (defmulti -create-manager-parameters
@@ -184,6 +247,12 @@
         (-> (Locale/getDefault) (.getCountry))
         (string/trim calendar-part))
       string/lower-case))
+
+(s/fdef normalized-calendar-part
+  :args (s/cat :calendar-part (s/nilable string?))
+  :ret (s/and
+        string?
+        util/lowercase?))
 
 
 (defmethod -create-manager-parameters [String :xml]
@@ -223,6 +292,11 @@
   [calendar format]
   (doto (-create-manager-parameters calendar format)
     (set-format! format)))
+
+(s/fdef create-manager-parameters
+  :args (s/cat :calendar any?, :format format?)
+  :ret parameter?)
+
 
 ;; Parsing a place
 
