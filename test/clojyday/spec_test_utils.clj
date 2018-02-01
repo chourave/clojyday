@@ -1,18 +1,20 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.spec-test-utils
-
   (:require
+   [clojure.spec.alpha :as s]
+   [expound.alpha :as expound]
    [orchestra.spec.test :refer [instrument unstrument]]))
 
 (defn instrument-fixture
   ""
   [f]
   (instrument)
-  (try
-    (f)
-    (finally
-      (unstrument))))
+  (binding [s/*explain-out* expound/printer]
+    (try
+      (f)
+      (finally
+        (unstrument)))))
 
 ;; Copyright 2018 Frederic Merizen
 ;;
