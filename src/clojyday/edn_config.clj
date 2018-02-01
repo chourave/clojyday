@@ -17,7 +17,7 @@
                         EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
                         Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
                         FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
-                        HinduHolidayType HolidayType Holidays IslamicHoliday
+                        HinduHolidayType Holiday HolidayType Holidays IslamicHoliday
                         IslamicHolidayType Month MovingCondition RelativeToEasterSunday
                         RelativeToFixed RelativeToWeekdayInMonth Weekday When Which With)
     (de.jollyday.datasource ConfigurationDataSource)
@@ -58,6 +58,38 @@
 
 (s/def ::days int?)
 
+(s/def ::description string?)
+
+(s/def ::hierarchy keyword?)
+
+(s/def ::holidays (s/coll-of `holiday))
+
+(s/def ::sub-configurations (s/coll-of ::configuration))
+
+(s/def ::configuration
+  (s/keys :req-un [::description ::hierarchy ::holidays]
+          :opt-un [::sub-configurations]))
+
+(defn holiday?
+  "Is x a Jollyday Holiday configuration object?"
+  [x]
+  (instance? Holiday x))
+
+(s/fdef holiday?
+  :args (s/cat :x any?)
+  :ret boolean?)
+
+
+(defn named?
+  "Is x a valid argument to the `name` function?"
+  [x]
+  (instance? clojure.lang.Named x))
+
+(s/fdef named?
+  :args (s/cat :x any?)
+  :ret boolean?)
+
+
 ;; XML reading
 
 (s/def :xml/tag keyword?)
@@ -82,7 +114,7 @@
       xml/parse))
 
 (s/fdef read-xml
-  :args (s/cat :suffix #(instance? clojure.lang.Named %))
+  :args (s/cat :suffix named?)
   :ret `xml-node)
 
 
@@ -124,6 +156,10 @@
   "Parse a :clojure-keyword to a JAVA_CONSTANT_NAME (as a strig)"
   [x]
   (-> x name string/upper-case (string/replace #"-" "_")))
+
+(s/fdef ->const-name
+  :args (s/cat :x named?)
+  :ret (s/and string? util/uppercase?))
 
 
 ;;
@@ -188,6 +224,10 @@
   [value enum]
   `(-> ~value ->const-name (~(symbol (str enum) "valueOf"))))
 
+(s/fdef ->enum
+  :args (s/cat :value any? :enum simple-symbol?)
+  :ret any?)
+
 
 ;;
 
@@ -226,16 +266,21 @@
   :ret (s/nilable (s/keys :req-un [::moving-conditions])))
 
 
-(defn add-moving-conditions
+(defn add-moving-conditions!
   "Add the moving conditions from a map to a Jollyday Holiday object"
   [bean config]
-  (-> bean
-      (.getMovingCondition)
-      (.addAll (map #(doto (MovingCondition.)
-                       (.setSubstitute (-> % :substitute (->enum Weekday)))
-                       (.setWith (-> % :with (->enum With)))
-                       (.setWeekday (-> % :weekday (->enum Weekday))))
-                    (:moving-conditions config)))))
+  (doto bean
+    (-> .getMovingCondition
+        (.addAll (map #(doto (MovingCondition.)
+                         (.setSubstitute (-> % :substitute (->enum Weekday)))
+                         (.setWith (-> % :with (->enum With)))
+                         (.setWeekday (-> % :weekday (->enum Weekday))))
+                      (:moving-conditions config))))))
+
+(s/fdef add-moving-conditions!
+  :args (s/cat :bean holiday? :config map?)
+  :ret holiday?
+  :fn #(identical? (-> % :ret) (-> % :args :bean)))
 
 
 (defmulti -parse-holiday
@@ -244,11 +289,14 @@
   handles the common parts)"
   :tag)
 
+
 (defmulti holiday-spec
   "Returns the spec for a holiday definition"
   :holiday)
 
+
 (s/def holiday (s/multi-spec holiday-spec :holiday))
+
 
 (defn tag->holiday
   ""
@@ -285,7 +333,7 @@
   :ret `holiday-common)
 
 
-(defn set-common-holiday-attributes
+(defn set-common-holiday-attributes!
   [holiday config]
   (doto holiday
     (.setValidFrom (some-> config :valid-from int))
@@ -293,6 +341,11 @@
     (.setEvery (some-> config :every ->const-name))
     (.setLocalizedType (some-> config :localized-type (->enum HolidayType)))
     (.setDescriptionPropertiesKey (some-> config :description-key ->const-name))))
+
+(s/fdef set-common-holiday-attributes!
+  :args (s/cat :bean holiday? :config map?)
+  :ret holiday?
+  :fn #(identical? (-> % :ret) (-> % :args :bean)))
 
 
 (defn parse-holiday
@@ -310,7 +363,6 @@
 (defn parse-configuration
   ""
   [configuration]
-
   (let [holidays           (element configuration :Holidays)
         sub-configurations (elements configuration :SubConfigurations)
         configuration      {:description (attribute configuration :description)
@@ -321,10 +373,19 @@
       configuration)))
 
 
+(s/fdef parse-configuration
+  :args (s/cat :configuration `xml-node)
+  :ret ::configuration)
+
+
 (defn read-configuration
   ""
   [calendar]
   (parse-configuration (read-xml calendar)))
+
+(s/fdef read-configuration
+  :args (s/cat :calendar named?)
+  :ret ::configuration)
 
 
 (def key-order
@@ -367,6 +428,12 @@
       (throw (Exception. (str "Unhandled keys " (string/join ", " unhandled-keys)))))
     (apply array-map (mapcat #(vector % (% m)) ordered-keys))))
 
+(s/fdef sort-map
+  :args (s/cat :m map?)
+  :ret (s/map-of (set key-order) any?)
+  :fn #(= (-> % :args :m)
+          (-> % :ret)))
+
 
 (defn sorted-configuration
   ""
@@ -379,6 +446,10 @@
       (throw (Exception. (str "While reading calendat " (name calendar-name))
                          e)))))
 
+(s/fdef sorted-configuration
+  :args (s/cat :calendar-name named?)
+  :ret ::configuration)
+
 
 (defn raw-print
   ""
@@ -386,17 +457,29 @@
   (binding [*out* w]
     (prn (read-configuration config))))
 
+(s/fdef raw-print
+  :args (s/cat :config named?, :w #(instance? java.io.Writer %))
+  :ret nil?)
+
 
 (defn pretty-print
   ""
   [config w]
   (pprint (sorted-configuration config) w))
 
+(s/fdef pretty-print
+  :args (s/cat :config named?, :w #(instance? java.io.Writer %))
+  :ret nil?)
+
 
 (defn cal-edn-path
   ""
   [cal]
   (io/file "holidays" (str (name cal) "-holidays.edn")))
+
+(s/fdef cal-edn-path
+  :args (s/cat :cal named?)
+  :ret #(instance? java.io.File %))
 
 
 (defn xml->edn
@@ -407,6 +490,9 @@
       (io/make-parents f)
       (print cal (io/writer f)))))
 
+(s/fdef xml->edn
+  :args (s/cat :target-dir string?, :print fn?, :cal named?)
+  :ret nil?)
 
 ;;
 
@@ -415,12 +501,29 @@
   :holiday)
 
 
-(defn add-holidays
+(defn java-collection?
+  "Is x a Java collection?"
+  [x]
+  (instance? java.util.Collection x))
+
+(s/fdef java-collection?
+  :args (s/cat :x any?)
+  :ret boolean?)
+
+
+(defn add-holidays!
   ""
   [holidays all-holidays type]
   (->> all-holidays
        (filter #(instance? type %))
-       (.addAll holidays)))
+       (.addAll holidays))
+  nil)
+
+(s/fdef add-holidays!
+  :args (s/and (s/cat :holidays java-collection?
+                      :all-holidays (s/coll-of holiday?)
+                      :type #(.isAssignableFrom Holiday %)))
+  :ret nil?)
 
 
 (defmacro dispatch-holidays
@@ -430,7 +533,11 @@
     `(let [~h ~holidays]
        (doto (Holidays.)
          ~@(for [t types]
-             `(-> (~(symbol (str ".get" t))) (add-holidays ~h ~t)))))))
+             `(-> (~(symbol (str ".get" t))) (add-holidays! ~h ~t)))))))
+
+(s/fdef dispatch-holidays
+  :args (s/cat :holidays any? :types (s/* simple-symbol?))
+  :ret any?)
 
 
 (defn ->Holidays
@@ -444,7 +551,11 @@
                            FixedWeekdayBetweenFixed FixedWeekdayRelativeToFixed
                            HinduHoliday HebrewHoliday EthiopianOrthodoxHoliday
                            RelativeToEasterSunday)
-      (-> (.getFixedWeekday) (add-holidays holidays FixedWeekdayInMonth)))))
+      (-> (.getFixedWeekday) (add-holidays! holidays FixedWeekdayInMonth)))))
+
+(s/fdef ->Holidays
+  :args (s/cat :config ::holidays)
+  :ret #(instance? Holidays %))
 
 
 (declare add-sub-configurations!)
@@ -459,12 +570,22 @@
     (.setHolidays (-> config :holidays ->Holidays))
     (add-sub-configurations! config)))
 
+(s/fdef ->Configuration
+  :args (s/cat :config ::configuration)
+  :ret #(instance? Configuration %))
+
 
 (defn add-sub-configurations!
   ""
   [configuration config]
   (when-let [sub-configurations (some->> config :sub-configurations (map ->Configuration))]
-    (-> configuration .getSubConfigurations (.addAll sub-configurations))))
+    (-> configuration .getSubConfigurations (.addAll sub-configurations))
+    nil))
+
+(s/fdef add-sub-configurations!
+  :args (s/cat :configuration #(instance? Configuration %) :config ::configuration)
+  :ret nil?)
+
 
 (place/add-format :xml-clj :xml)
 (place/add-format :edn)
@@ -536,10 +657,14 @@
   ""
   [config]
   (doto (Fixed.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setMonth (-> config :month (->enum Month)))
     (.setDay (-> config :day int))
-    (add-moving-conditions config)))
+    (add-moving-conditions! config)))
+
+(s/fdef ->Fixed
+  :args (s/cat :config ::date)
+  :ret #(instance? Fixed %))
 
 
 (defmethod ->Holiday :fixed
@@ -568,7 +693,7 @@
 (defmethod ->Holiday :relative-to-fixed
   [config]
   (doto (RelativeToFixed.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setWeekday (some-> config :weekday (->enum Weekday)))
     (.setWhen (-> config :when (->enum When)))
     (.setDate (-> config :date ->Fixed))
@@ -591,7 +716,7 @@
 (defmethod ->Holiday :fixed-weekday-between-fixed
   [config]
   (doto (FixedWeekdayBetweenFixed.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setWeekday (some-> config :weekday (->enum Weekday)))
     (.setFrom (-> config :from ->Fixed))
     (.setTo (-> config :to ->Fixed))))
@@ -628,10 +753,14 @@
 (defn ->FixedWeekday
   [config]
   (doto (FixedWeekdayInMonth.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setWhich (-> config :which (->enum Which)))
     (.setWeekday (-> config :weekday (->enum Weekday)))
     (.setMonth (-> config :month (->enum Month)))))
+
+(s/fdef ->FixedWeekday
+  :args (s/cat :config ::fixed-weekday)
+  :ret #(instance? FixedWeekdayInMonth %))
 
 
 (defmethod ->Holiday :fixed-weekday
@@ -656,7 +785,7 @@
 (defmethod ->Holiday :relative-to-weekday-in-month
   [config]
   (doto (RelativeToWeekdayInMonth.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setWeekday (-> config :weekday (->enum Weekday)))
     (.setWhen (-> config :when (->enum When)))
     (.setFixedWeekday (-> config :fixed-weekday ->FixedWeekday))))
@@ -681,7 +810,7 @@
 (defmethod ->Holiday :fixed-weekday-relative-to-fixed
   [config]
   (doto (FixedWeekdayRelativeToFixed.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setWhich (-> config :which (->enum Which)))
     (.setWeekday (-> config :weekday (->enum Weekday)))
     (.setWhen (-> config :when (->enum When)))
@@ -715,10 +844,10 @@
 (defmethod ->Holiday :christian-holiday
   [config]
   (doto (ChristianHoliday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setType (-> config :type (->enum ChristianHolidayType)))
     (.setChronology (some-> config :chronology (->enum ChronologyType)))
-    (add-moving-conditions config)))
+    (add-moving-conditions! config)))
 
 
 (defmethod -parse-holiday :tns:RelativeToEasterSunday [node]
@@ -735,7 +864,7 @@
 (defmethod ->Holiday :relative-to-easter-sunday
   [config]
   (doto (RelativeToEasterSunday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setChronology (some-> config :chronology (->enum ChronologyType)))
     (.setDays (-> config :days int))))
 
@@ -761,7 +890,7 @@
 (defmethod ->Holiday :islamic-holiday
   [config]
   (doto (IslamicHoliday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setType (-> config :type (->enum IslamicHolidayType)))))
 
 
@@ -783,7 +912,7 @@
 (defmethod ->Holiday :hindu-holiday
   [config]
   (doto (HinduHoliday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setType (-> config :type (->enum HinduHolidayType)))))
 
 
@@ -809,7 +938,7 @@
 (defmethod ->Holiday :hebrew-holiday
   [config]
   (doto (HebrewHoliday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setType (-> config :type ->const-name))))
 
 
@@ -831,7 +960,7 @@
 (defmethod ->Holiday :ethiopian-orthodox-holiday
   [config]
   (doto (EthiopianOrthodoxHoliday.)
-    (set-common-holiday-attributes config)
+    (set-common-holiday-attributes! config)
     (.setType (-> config :type (->enum EthiopianOrthodoxHolidayType)))))
 
 

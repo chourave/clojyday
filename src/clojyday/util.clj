@@ -58,6 +58,16 @@
   :ret boolean?)
 
 
+(defn uppercase?
+  "Does `s` contain no lower case characters?"
+  [s]
+  (= s (string/upper-case s)))
+
+(s/fdef uppercase?
+  :args (s/cat :s string?)
+  :ret boolean?)
+
+
 (defn strip
   "Remvoe any occurrences of `to-strip` in `s`"
   [s to-strip]

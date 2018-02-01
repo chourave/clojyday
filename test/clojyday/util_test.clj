@@ -33,6 +33,21 @@
 
 ;; String manipulation
 
+(deftest lowercase?-test
+  (is (util/lowercase? "abc"))
+  (is (util/lowercase? "abc-def"))
+  (is (util/lowercase? "/$+*"))
+  (is (not (util/lowercase? "B"))))
+
+
+
+(deftest uppercase?-test
+  (is (util/uppercase? "ABC"))
+  (is (util/uppercase? "ABC-DEF"))
+  (is (util/uppercase? "/$+*"))
+  (is (not (util/uppercase? "b"))))
+
+
 (deftest kebab->camel-test
   (is (= "abacaba" (util/kebab->camel "abacaba")))
   (is (= "abaCaba" (util/kebab->camel "aba-caba"))))

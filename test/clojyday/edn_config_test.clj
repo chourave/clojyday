@@ -349,13 +349,13 @@
   (is (= Month/AUGUST
          (edn-config/->enum :august Month))))
 
-(deftest set-common-holiday-attributes-config-test
+(deftest set-common-holiday-attributes!-config-test
   (testing "Respect default values"
     (is (= (config-bean (doto (Fixed.)
                           (.setEvery "EVERY_YEAR")
                           (.setLocalizedType HolidayType/OFFICIAL_HOLIDAY)))
            (config-bean (doto (Fixed.)
-                          (edn-config/set-common-holiday-attributes {})))))))
+                          (edn-config/set-common-holiday-attributes! {})))))))
 
 (deftest ->Holiday-test
     (testing "For fixed"
