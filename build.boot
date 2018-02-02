@@ -81,7 +81,7 @@
             calendar-names (resolve 'clojyday/calendar-names)
             print (if pretty
                     (resolve 'edn-config/pretty-print)
-                    (resolve 'edn-config/raw-print))]
+                    (resolve 'edn-config/fast-print))]
         (doseq [cal  (calendar-names)]
           (xml->edn dir print cal)))
       (commit! (add-resource fileset dir)))))

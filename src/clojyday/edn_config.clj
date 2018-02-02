@@ -80,6 +80,16 @@
   :ret boolean?)
 
 
+(defn java-collection?
+  "Is x a Java collection?"
+  [x]
+  (instance? java.util.Collection x))
+
+(s/fdef java-collection?
+  :args (s/cat :x any?)
+  :ret boolean?)
+
+
 (defn named?
   "Is x a valid argument to the `name` function?"
   [x]
@@ -89,6 +99,8 @@
   :args (s/cat :x any?)
   :ret boolean?)
 
+
+(s/def ::calendaer-name named?)
 
 ;; XML reading
 
@@ -114,7 +126,7 @@
       xml/parse))
 
 (s/fdef read-xml
-  :args (s/cat :suffix named?)
+  :args (s/cat :suffix ::calendar-name)
   :ret `xml-node)
 
 
@@ -245,9 +257,11 @@
                    :fixed})
 
 (s/def holiday-common
-  (s/keys
-   :req-un [::holiday]
-   :opt-un [::valid-from ::valid-to ::every ::description-key ::localized-type]))
+  (s/keys :opt-un [::valid-from ::valid-to ::every ::description-key ::localized-type]))
+
+(s/def holiday-tag-common
+  (s/merge `holiday-common
+           (s/keys :req-un [::holiday])))
 
 (defn parse-moving-conditions
   "Parse the moving conditions from an xml node into a map"
@@ -299,7 +313,8 @@
 
 
 (defn tag->holiday
-  ""
+  "Parse the xml tag name of a holiday type to a holiday type keyword.
+  The xml namespace is discarded."
   [tag]
   (-> tag
       name
@@ -314,7 +329,8 @@
 
 
 (defn parse-common-holiday-attributes
-  ""
+  "Parse an xml node, reading the attributes that are common to all holiday types,
+  and return them as a map."
   [node]
   (let [description-key (attribute node :descriptionPropertiesKey)
         holiday         (-> node
@@ -330,10 +346,12 @@
 
 (s/fdef parse-common-holiday-attributes
   :args (s/cat :node `xml-node)
-  :ret `holiday-common)
+  :ret `holiday-tag-common)
 
 
 (defn set-common-holiday-attributes!
+  "Set a Jollyday `holiday`object with all those attributes from `config`
+  that are shared among all holiday types."
   [holiday config]
   (doto holiday
     (.setValidFrom (some-> config :valid-from int))
@@ -343,13 +361,13 @@
     (.setDescriptionPropertiesKey (some-> config :description-key ->const-name))))
 
 (s/fdef set-common-holiday-attributes!
-  :args (s/cat :bean holiday? :config map?)
+  :args (s/cat :bean holiday? :config `holiday-common)
   :ret holiday?
   :fn #(identical? (-> % :ret) (-> % :args :bean)))
 
 
 (defn parse-holiday
-  ""
+  "Parse an xml node describing a holiday to an edn holiday description"
   [node]
   (merge
    (parse-common-holiday-attributes node)
@@ -361,7 +379,7 @@
 
 
 (defn parse-configuration
-  ""
+  "Parse an xml holiday configuration to an edn configuration"
   [configuration]
   (let [holidays           (element configuration :Holidays)
         sub-configurations (elements configuration :SubConfigurations)
@@ -379,17 +397,20 @@
 
 
 (defn read-configuration
-  ""
-  [calendar]
-  (parse-configuration (read-xml calendar)))
+  "Read the configuration for `calendar-name` from an xml file from the
+  Jollyday distribution, and parse it to an edn configuration.
+
+  Example: (read-configuration :fr)"
+  [calendar-name]
+  (parse-configuration (read-xml calendar-name)))
 
 (s/fdef read-configuration
-  :args (s/cat :calendar named?)
+  :args (s/cat :calendar-name ::calendar-name)
   :ret ::configuration)
 
 
 (def key-order
-  ""
+  "Order in which keys should appear in the final edn configuration (purely for readability)"
   [;; configuration
    :hierarchy, :description, :holidays, :sub-configurations
 
@@ -419,7 +440,8 @@
 
 
 (defn sort-map
-  ""
+  "Make a copy of map `m`, with keys in `key-order`.
+  Throw an exception if `m` contains unknown keys."
   [m]
   (let [ks (-> m keys set)
         ordered-keys (filter ks key-order)
@@ -436,83 +458,84 @@
 
 
 (defn sorted-configuration
-  ""
+  "Read the configuration for `calendar-name` from an xml file from the
+  Jollyday distribution, and parse it to an edn configuration, sorting
+  keys to make it easier to read for humans.
+
+  Example: (sorted-configuration :fr)"
   [calendar-name]
   (try
     (->> calendar-name
          read-configuration
          (postwalk #(if (map? %) (sort-map %) %)))
     (catch Exception e
-      (throw (Exception. (str "While reading calendat " (name calendar-name))
+      (throw (Exception. (str "While reading calendar " (name calendar-name))
                          e)))))
 
 (s/fdef sorted-configuration
-  :args (s/cat :calendar-name named?)
+  :args (s/cat :calendar-name ::calendar-name)
   :ret ::configuration)
 
 
-(defn raw-print
-  ""
-  [config w]
-  (binding [*out* w]
-    (prn (read-configuration config))))
+(defn fast-print
+  "Read the configuration for `calendar-name` from an xml file from the
+  Jollyday distribution, and print is as edn to the `writer`, with emphasis
+  on the speed of the conversion."
+  [calendar-name writer]
+  (binding [*out* writer]
+    (prn (read-configuration calendar-name))))
 
-(s/fdef raw-print
-  :args (s/cat :config named?, :w #(instance? java.io.Writer %))
+(s/fdef fast-print
+  :args (s/cat :calendar-name ::calendar-name, :writer #(instance? java.io.Writer %))
   :ret nil?)
 
 
 (defn pretty-print
-  ""
-  [config w]
-  (pprint (sorted-configuration config) w))
+  "Read the configuration for `calendar-name` from an xml file from the
+  Jollyday distribution, and print is as edn to the `writer`, with emphasis
+  on a nice-looking output."
+  [calendar-name writer]
+  (pprint (sorted-configuration calendar-name) writer))
 
 (s/fdef pretty-print
-  :args (s/cat :config named?, :w #(instance? java.io.Writer %))
+  :args (s/cat :calendar-name ::calendar-name, :writer #(instance? java.io.Writer %))
   :ret nil?)
 
 
 (defn cal-edn-path
-  ""
-  [cal]
-  (io/file "holidays" (str (name cal) "-holidays.edn")))
+  "Path for the edn configuration file for a given `calendar-name`"
+  [calendar-name]
+  (io/file "holidays" (str (name calendar-name) "-holidays.edn")))
 
 (s/fdef cal-edn-path
-  :args (s/cat :cal named?)
+  :args (s/cat :cal ::calendar-name)
   :ret #(instance? java.io.File %))
 
 
 (defn xml->edn
-  ""
-  [target-dir print cal]
+  "Convert the calendar named `calendar-name` from an xml file in the Jollyday
+  distribution to an edn file in `target`. `print` should be either
+  `pretty-print` or `fast-print`."
+  [target-dir print calendar-name]
   (binding [pprint/*print-right-margin* 110]
-    (let [f (io/file target-dir (cal-edn-path cal))]
+    (let [f (io/file target-dir (cal-edn-path calendar-name))]
       (io/make-parents f)
-      (print cal (io/writer f)))))
+      (print calendar-name (io/writer f)))))
 
 (s/fdef xml->edn
-  :args (s/cat :target-dir string?, :print fn?, :cal named?)
+  :args (s/cat :target-dir string?, :print fn?, :calendar-name ::calendar-name)
   :ret nil?)
 
 ;;
 
 (defmulti ->Holiday
-  ""
+  "Create a Jollyday holiday bean from an edn holiday configuration"
   :holiday)
 
 
-(defn java-collection?
-  "Is x a Java collection?"
-  [x]
-  (instance? java.util.Collection x))
-
-(s/fdef java-collection?
-  :args (s/cat :x any?)
-  :ret boolean?)
-
-
 (defn add-holidays!
-  ""
+  "Add holidays of a given `type` from `all-holidays` collection
+  to the `holidays` java collection"
   [holidays all-holidays type]
   (->> all-holidays
        (filter #(instance? type %))
@@ -527,7 +550,8 @@
 
 
 (defmacro dispatch-holidays
-  ""
+  "Sort Holiday objects by `types` into the corresponding slots
+  of a Holidays object."
   [holidays & types]
   (let [h (gensym "holidays")]
     `(let [~h ~holidays]
@@ -541,7 +565,8 @@
 
 
 (defn ->Holidays
-  ""
+  "Parse a collection of holiday configuration edn into a Jollyday
+  Holidays configuration bean."
   [config]
   (let [holidays (map ->Holiday config)]
     (doto
@@ -560,9 +585,9 @@
 
 (declare add-sub-configurations!)
 
-
 (defn ->Configuration
-  ""
+  "Parse an edn `config` (top-level or for a subdivision)
+  into an Jollyday Configuration bean."
   [config]
   (doto (Configuration.)
     (.setDescription (-> config :description))
@@ -576,7 +601,8 @@
 
 
 (defn add-sub-configurations!
-  ""
+  "Parse the configurations for geographical subdivisions from the edn `config`
+  and add them to the Jollyday `configuration` bean"
   [configuration config]
   (when-let [sub-configurations (some->> config :sub-configurations (map ->Configuration))]
     (-> configuration .getSubConfigurations (.addAll sub-configurations))
@@ -630,7 +656,7 @@
 ;; Fixed day
 
 (defn parse-fixed
-  ""
+  "Parse a fixed day and month holiday from an xml node to an edn map"
   [node]
   (merge
    (parse-attributes
@@ -649,12 +675,12 @@
 
 (defmethod holiday-spec :fixed [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    ::date))
 
 
 (defn ->Fixed
-  ""
+  "Create a Jollyday fixed holiday configuration bean from an edn map"
   [config]
   (doto (Fixed.)
     (set-common-holiday-attributes! config)
@@ -684,7 +710,7 @@
 
 (defmethod holiday-spec :relative-to-fixed [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/and
     (s/keys :req-un [::when ::date] :opt-un [::days ::weekday])
     #(some % [:days :weekday]))))
@@ -709,7 +735,7 @@
 
 (defmethod holiday-spec :fixed-weekday-between-fixed [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [::weekday ::from ::to])))
 
 
@@ -728,7 +754,7 @@
   (s/keys :req-un [::which ::weekday ::month]))
 
 (defn parse-fixed-weekday
-  ""
+  "Parse a fixed weekday of month from an xml node to an edn map"
   [node]
   (parse-attributes
    node
@@ -746,7 +772,7 @@
 
 (defmethod holiday-spec :fixed-weekday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    ::fixed-weekday))
 
 
@@ -767,6 +793,7 @@
   [config]
   (->FixedWeekday config))
 
+
 ;; Relative to weekday in month
 
 (defmethod -parse-holiday :tns:RelativeToWeekdayInMonth [node]
@@ -778,7 +805,7 @@
 
 (defmethod holiday-spec :relative-to-weekday-in-month [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [::weekday ::when ::fixed-weekday])))
 
 
@@ -803,7 +830,7 @@
 
 (defmethod holiday-spec :fixed-weekday-relative-to-fixed [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [::which ::weekday ::when ::date])))
 
 
@@ -837,7 +864,7 @@
 
 (defmethod holiday-spec :christian-holiday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [:christian/type] :opt-un [::chronology ::moving-conditions])))
 
 
@@ -857,7 +884,7 @@
 
 (defmethod holiday-spec :relative-to-easter-sunday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [::chronology ::days])))
 
 
@@ -883,7 +910,7 @@
 
 (defmethod holiday-spec :islamic-holiday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [:islamic/type])))
 
 
@@ -905,7 +932,7 @@
 
 (defmethod holiday-spec :hindu-holiday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [:hindu/type])))
 
 
@@ -931,7 +958,7 @@
 
 (defmethod holiday-spec :hebrew-holiday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [:hebrew/type])))
 
 
@@ -953,7 +980,7 @@
 
 (defmethod holiday-spec :ethiopian-orthodox-holiday [_]
   (s/merge
-   `holiday-common
+   `holiday-tag-common
    (s/keys :req-un [:ethiopian-orthodox/type])))
 
 
