@@ -76,12 +76,12 @@
     (with-pre-wrap [fileset]
       (empty-dir! dir)
       (require '[clojyday.core :as clojyday]
-               '[clojyday.edn-config :as edn-config])
-      (let [xml->edn (resolve 'edn-config/xml->edn)
+               '[clojyday.xml-config :as xml-config])
+      (let [xml->edn (resolve 'xml-config/xml->edn)
             calendar-names (resolve 'clojyday/calendar-names)
             print (if pretty
-                    (resolve 'edn-config/pretty-print)
-                    (resolve 'edn-config/fast-print))]
+                    (resolve 'xml-config/pretty-print)
+                    (resolve 'xml-config/fast-print))]
         (doseq [cal  (calendar-names)]
           (xml->edn dir print cal)))
       (commit! (add-resource fileset dir)))))
