@@ -18,6 +18,55 @@
     (java.util Locale)))
 
 
+;;
+
+(defonce ^{:private true, :doc ""} format-hierarchy
+  (make-hierarchy))
+
+
+(defn parameter?
+  "Is the argument a Jollyday manager parameter?"
+  [x]
+  (instance? ManagerParameter x))
+
+(s/fdef parameter?, :args any?, :ret boolean?)
+
+
+(defn format?
+  ""
+  [f]
+  (isa? format-hierarchy f :any-format))
+
+(s/fdef format?
+  :args (s/cat :f keyword?)
+  :ret boolean?)
+
+
+(defn get-format
+  ""
+  [p]
+  (as-> p %
+    (.getProperty % "clojyday.configuration-format")
+    (string/split % #"/")
+    (apply keyword %)))
+
+(s/fdef get-format
+  :args (s/cat :p parameter?)
+  :ret format?)
+
+
+(defmulti configuration-data-source
+  ""
+  get-format
+  :hierarchy #'format-hierarchy)
+
+
+(defmulti -create-manager-parameters
+  ""
+ #(vector (type %1) %2)
+ :hierarchy #'format-hierarchy)
+
+
 ;; Basic type predicates
 
 (defn cache-value-handler?
@@ -34,14 +83,6 @@
   (instance? Locale x))
 
 (s/fdef locale?, :args any?, :ret boolean?)
-
-
-(defn parameter?
-  "Is the argument a Jollyday manager parameter?"
-  [x]
-  (instance? ManagerParameter x))
-
-(s/fdef parameter?, :args any?, :ret boolean?)
 
 
 ;; Basic field types
@@ -66,12 +107,20 @@
 
 ;; Basic specs
 
+(defn nil-safe-instance?
+  [c x]
+  (if (nil? c)
+    (nil? x)
+    (instance? c x)))
+
 (s/def calendar-or-id
-  (s/or :part-kw  holiday-calendars
-        :part-str string?
-        :locale   locale?
-        :calendar #(instance? HolidayCalendar %)
-        :file-url #(instance? URL %)))
+  (s/or :predefined holiday-calendars
+        :open   (fn [c]
+                  (->> -create-manager-parameters
+                       methods
+                       keys
+                       (map first)
+                       (some #(nil-safe-instance? % c))))))
 
 
 (s/def calendar-and-zones
@@ -132,11 +181,6 @@
           (-> % :ret type .getName)))
 
 
-(def ^{:private true} format-hierarchy
-  ""
-  (make-hierarchy))
-
-
 (defn add-format
   ""
   ([format]
@@ -149,16 +193,6 @@
   :args (s/cat :format keyword?
                :parent (s/? keyword?))
   :ret nil?)
-
-
-(defn format?
-  ""
-  [f]
-  (isa? format-hierarchy f :any-format))
-
-(s/fdef format?
-  :args (s/cat :f keyword?)
-  :ret boolean?)
 
 
 (add-format :xml)
@@ -178,25 +212,6 @@
   :args (s/cat :p parameter?
                :format format?)
   :ret nil?)
-
-
-(defn get-format
-  ""
-  [p]
-  (as-> p %
-        (.getProperty % "clojyday.configuration-format")
-        (string/split % #"/")
-        (apply keyword %)))
-
-(s/fdef get-format
-  :args (s/cat :p parameter?)
-  :ret format?)
-
-
-(defmulti configuration-data-source
-  ""
-  get-format
-  :hierarchy #'format-hierarchy)
 
 
 (defmethod configuration-data-source :xml-jaxb
@@ -235,12 +250,6 @@
   :ret ::manager)
 
 
-(defmulti -create-manager-parameters
-  ""
- #(vector (type %1) %2)
- :hierarchy #'format-hierarchy)
-
-
 (defn normalized-calendar-part
   [calendar-part]
   (-> (if (string/blank? calendar-part)
@@ -261,26 +270,21 @@
       normalized-calendar-part
       (CalendarPartManagerParameter. nil)))
 
-
 (defmethod -create-manager-parameters [Named :any-format]
   [calendar-part format]
   (-create-manager-parameters (name calendar-part) format))
-
 
 (defmethod -create-manager-parameters [nil :any-format]
   [_ format]
   (-create-manager-parameters "" format))
 
-
 (defmethod -create-manager-parameters [Locale :any-format]
   [lc format]
   (-create-manager-parameters (.getCountry lc) format))
 
-
 (defmethod -create-manager-parameters [HolidayCalendar :any-format]
   [calendar format]
   (-create-manager-parameters (.getId calendar) format))
-
 
 (defmethod -create-manager-parameters [URL :any-format]
   [calendar-file-url _]
@@ -317,7 +321,7 @@
   "Splits a place specification into a calendar and sub-zones"
   [config-format place]
   (let [[calendar & zones]
-        (if (coll? place) place [place])]
+        (if (sequential? place) place [place])]
     {::zones   (into-array String (map name zones))
      ::manager (holiday-manager config-format calendar)}))
 
