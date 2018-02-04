@@ -4,9 +4,11 @@
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
+   [clojyday.core :as clojyday]
    [clojyday.edn-config :as edn-config]
    [clojyday.place :as place]
-   [clojyday.spec-test-utils :refer [instrument-fixture]])
+   [clojyday.spec-test-utils :refer [instrument-fixture]]
+   [java-time :as time])
   (:import
    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
@@ -294,6 +296,17 @@
                         [{:description "Martinique",
                           :hierarchy   :ma,
                           :holidays    [{:holiday :christian-holiday, :type :clean-monday}]}]})))))
+
+
+(deftest place-integration-test
+  (testing "Use a map literal configuration"
+    (is (clojyday/holiday?
+         :edn {:description "blah", :hierarchy :bl
+               :holidays    [{:holiday :fixed
+                              :month   :july
+                              :day     14}]}
+         (time/local-date 2017 7 14)
+         :any-holiday))))
 
 
 ;; Copyright 2018 Frederic Merizen

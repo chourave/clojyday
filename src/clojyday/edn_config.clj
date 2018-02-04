@@ -9,18 +9,19 @@
    [clojyday.place :as place]
    [clojyday.util :as util])
   (:import
-    (de.jollyday ManagerParameter)
-    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
-                        EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType
-                        Fixed FixedWeekdayBetweenFixed FixedWeekdayInMonth
-                        FixedWeekdayRelativeToFixed HebrewHoliday HinduHoliday
-                        HinduHolidayType Holiday HolidayType Holidays IslamicHoliday
-                        IslamicHolidayType Month MovingCondition RelativeToEasterSunday
-                        RelativeToFixed RelativeToWeekdayInMonth Weekday When Which With)
-    (de.jollyday.datasource ConfigurationDataSource)
-    (de.jollyday.parameter CalendarPartManagerParameter)
-    (java.io PushbackReader)
-    (de.jollyday.util ResourceUtil)))
+   (de.jollyday ManagerParameter)
+   (de.jollyday.config
+    ChristianHoliday ChristianHolidayType ChronologyType Configuration
+    EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType Fixed
+    FixedWeekdayBetweenFixed FixedWeekdayInMonth FixedWeekdayRelativeToFixed
+    HebrewHoliday HinduHoliday HinduHolidayType Holiday HolidayType Holidays
+    IslamicHoliday IslamicHolidayType Month MovingCondition
+    RelativeToEasterSunday RelativeToFixed RelativeToWeekdayInMonth Weekday
+    When Which With)
+   (de.jollyday.datasource ConfigurationDataSource)
+   (de.jollyday.parameter BaseManagerParameter CalendarPartManagerParameter)
+   (java.io PushbackReader)
+   (de.jollyday.util ResourceUtil)))
 
 (s/def ::day (s/int-in 1 32))
 
@@ -337,17 +338,29 @@
 (place/add-format :edn)
 
 
+(defprotocol EdnSource
+  ""
+  (get-edn [_] ""))
+
+
+(defn manager-parameter->edn
+  ""
+  [parameter]
+  (if (satisfies? EdnSource parameter)
+    (get-edn parameter)
+    (-> parameter
+        .createResourceUrl
+        io/reader
+        PushbackReader.
+        edn/read)))
+
+
 (defmethod place/configuration-data-source :edn
   [_]
   (reify
     ConfigurationDataSource
     (getConfiguration [_ parameters]
-      (-> ^ManagerParameter parameters
-          .createResourceUrl
-          io/reader
-          PushbackReader.
-          edn/read
-          ->Configuration))))
+      (-> parameters manager-parameter->edn ->Configuration))))
 
 
 (defmethod place/-create-manager-parameters [String :edn]
@@ -358,6 +371,15 @@
            cal-edn-path
            str
           (.getResource (ResourceUtil.))))))
+
+
+(defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :edn]
+  [config _]
+  (proxy [BaseManagerParameter clojyday.edn_config.EdnSource] [nil]
+    (createCacheKey []
+      (-> config hash str))
+    (get_edn []
+      config)))
 
 
 ;; Fixed day
