@@ -46,17 +46,13 @@
 (defn config-bean
   ""
   [x]
-  (prewalk (fn [t]
-             (cond
-               (or (instance? Enum t)
-                   (string? t)
-                   (nil? t))
-               t
-
-               (config? t)  (into {} (bean t))
-               (seqable? t) (vec t)
-               :else        t))
-           x))
+  (prewalk
+   #(cond
+      (or (instance? Enum %) (string? %) (nil? %)) %
+      (config? %)                                  (into {} (bean %))
+      (seqable? %)                                 (vec %)
+      :else                                        %)
+   x))
 
 (deftest ->const-name-test
   (is (= "OCTOBER_DAYE"
