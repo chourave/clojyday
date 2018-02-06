@@ -1,14 +1,12 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.xml-config
+(ns clojyday.config.xml
   (:require
    [clojure.java.io :as io]
-   [clojure.pprint :as pprint :refer [pprint]]
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojure.walk :refer [postwalk]]
    [clojure.xml :as xml]
-   [clojyday.edn-config :as edn-config]
+   [clojyday.config.core :as config]
    [clojyday.place :as place]
    [clojyday.util :as util])
   (:import
@@ -149,7 +147,7 @@
 
 (s/fdef parse-moving-conditions
   :args (s/cat :node `xml-node)
-  :ret (s/nilable (s/keys :req-un [::edn-config/moving-conditions])))
+  :ret (s/nilable (s/keys :req-un [::config/moving-conditions])))
 
 
 (defmulti -parse-holiday
@@ -172,7 +170,7 @@
 
 (s/fdef tag->holiday
   :args (s/cat :tag ::tag)
-  :ret ::edn-config/holiday)
+  :ret ::config/holiday)
 
 
 (defn parse-common-holiday-attributes
@@ -193,7 +191,7 @@
 
 (s/fdef parse-common-holiday-attributes
   :args (s/cat :node `xml-node)
-  :ret `edn-config/holiday-tag-common)
+  :ret `config/holiday-tag-common)
 
 
 (defn parse-holiday
@@ -205,7 +203,7 @@
 
 (s/fdef parse-holiday
   :args (s/cat :node `xml-node)
-  :ret `edn-config/holiday)
+  :ret `config/holiday)
 
 
 (defn parse-configuration
@@ -222,7 +220,7 @@
 
 (s/fdef parse-configuration
   :args (s/cat :configuration `xml-node)
-  :ret ::edn-config/configuration)
+  :ret ::config/configuration)
 
 
 (defn read-configuration
@@ -234,72 +232,8 @@
   (parse-configuration (read-xml calendar-name)))
 
 (s/fdef read-configuration
-  :args (s/cat :calendar-name ::edn-config/calendar-name)
-  :ret ::edn-config/configuration)
-
-
-(defn sorted-configuration
-  "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and parse it to an edn configuration, sorting
-  keys to make it easier to read for humans.
-
-  Example: (sorted-configuration :fr)"
-  [calendar-name]
-  (try
-    (->> calendar-name
-         read-configuration
-         (postwalk #(if (map? %) (edn-config/sort-map %) %)))
-    (catch Exception e
-      (throw (Exception. (str "While reading calendar " (name calendar-name))
-                         e)))))
-
-(s/fdef sorted-configuration
-  :args (s/cat :calendar-name ::edn-config/calendar-name)
-  :ret ::edn-config/configuration)
-
-
-(defn fast-print
-  "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and print is as edn to the `writer`, with emphasis
-  on the speed of the conversion."
-  [calendar-name writer]
-  (binding [*out* writer]
-    (prn (read-configuration calendar-name))))
-
-(s/fdef fast-print
-  :args (s/cat :calendar-name ::edn-config/calendar-name
-               :writer #(instance? java.io.Writer %))
-  :ret nil?)
-
-
-(defn pretty-print
-  "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and print is as edn to the `writer`, with emphasis
-  on a nice-looking output."
-  [calendar-name writer]
-  (pprint (sorted-configuration calendar-name) writer))
-
-(s/fdef pretty-print
-  :args (s/cat :calendar-name ::edn-config/calendar-name
-               :writer #(instance? java.io.Writer %))
-  :ret nil?)
-
-
-(defn xml->edn
-  "Convert the calendar named `calendar-name` from an xml file in the Jollyday
-  distribution to an edn file in `target`. `print` should be either
-  `pretty-print` or `fast-print`."
-  [target-dir print calendar-name]
-  (binding [pprint/*print-right-margin* 110]
-    (let [f (io/file target-dir (edn-config/cal-edn-path calendar-name))]
-      (io/make-parents f)
-      (print calendar-name (io/writer f)))))
-
-(s/fdef xml->edn
-  :args (s/cat :target-dir string?
-               :print fn?
-               :calendar-name ::edn-config/calendar-name)
-  :ret nil?)
+  :args (s/cat :calendar-name ::config/calendar-name)
+  :ret ::config/configuration)
 
 
 ;;
@@ -317,7 +251,7 @@
           io/input-stream
           xml/parse
           parse-configuration
-          edn-config/->Configuration))))
+          config/->Configuration))))
 
 
 ;; Fixed day
@@ -334,7 +268,7 @@
 
 (s/fdef parse-fixed
   :args (s/cat :node `xml-node)
-  :ret ::edn-config/date)
+  :ret ::config/date)
 
 
 (defmethod -parse-holiday :tns:Fixed [node]
@@ -374,7 +308,7 @@
 
 (s/fdef parse-fixed-weekday
   :args (s/cat :node `xml-node)
-  :ret ::edn-config/fixed-weekday)
+  :ret ::config/fixed-weekday)
 
 
 (defmethod -parse-holiday :tns:FixedWeekday [node]

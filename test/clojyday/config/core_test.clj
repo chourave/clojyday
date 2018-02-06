@@ -1,11 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.edn-config-test
+(ns clojyday.config.core-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
    [clojyday.core :as clojyday]
-   [clojyday.edn-config :as edn-config]
+   [clojyday.config.core :as config]
    [clojyday.place :as place]
    [clojyday.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time])
@@ -25,18 +25,6 @@
 
 
 ;;
-
-(deftest format?-test
-  (is (place/format? :edn)))
-
-
-(deftest sort-map-test
-  (is (= "{:month :may, :day 1}"
-         (-> {:day 1, :month :may}
-             edn-config/sort-map
-             pr-str)))
-  (is (thrown-with-msg? Exception #"Unhandled keys :foo"
-                        (edn-config/sort-map {:foo 1}))))
 
 (defn config?
   ""
@@ -58,11 +46,11 @@
 
 (deftest ->const-name-test
   (is (= "OCTOBER_DAYE"
-         (edn-config/->const-name :october-daye))))
+         (config/->const-name :october-daye))))
 
 (deftest ->enum-test
   (is (= Month/AUGUST
-         (edn-config/->enum :august Month))))
+         (config/->enum :august Month))))
 
 (deftest set-common-holiday-attributes!-test
   (testing "Respect default values"
@@ -70,7 +58,7 @@
                           (.setEvery "EVERY_YEAR")
                           (.setLocalizedType HolidayType/OFFICIAL_HOLIDAY)))
            (config-bean (doto (Fixed.)
-                          (edn-config/set-common-holiday-attributes! {})))))))
+                          (config/set-common-holiday-attributes! {})))))))
 
 (deftest ->Holiday-test
     (testing "For fixed"
@@ -78,7 +66,7 @@
                             (.setMonth Month/FEBRUARY)
                             (.setDay (int 28))))
 
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :fixed, :month :february, :day 28}))))
 
       (is (= (config-bean (doto (Fixed.)
@@ -90,7 +78,7 @@
                                         (.setWith With/NEXT)
                                         (.setWeekday Weekday/MONDAY))))))
 
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday           :fixed
                             :month             :february
                             :day               28
@@ -106,7 +94,7 @@
                             (.setDate (doto (Fixed.)
                                         (.setMonth Month/MAY)
                                         (.setDay (int 24))))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday         :relative-to-fixed
                             :description-key :victoria-day
                             :weekday         :monday
@@ -119,7 +107,7 @@
                             (.setDate (doto (Fixed.)
                                         (.setMonth Month/NOVEMBER)
                                         (.setDay (int 23))))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :relative-to-fixed
                             :days    5
                             :when    :after
@@ -132,7 +120,7 @@
                             (.setMonth Month/MAY)
                             (.setValidFrom (int 1968))
                             (.setDescriptionPropertiesKey "MEMORIAL")))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday         :fixed-weekday
                             :which           :last
                             :weekday         :monday
@@ -149,7 +137,7 @@
                                                 (.setWhich Which/FIRST)
                                                 (.setWeekday Weekday/MONDAY)
                                                 (.setMonth Month/MAY)))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday         :relative-to-weekday-in-month
                             :weekday         :tuesday
                             :when            :after
@@ -161,14 +149,14 @@
     (testing "For christian holiday"
       (is (= (config-bean (doto (ChristianHoliday.)
                             (.setType ChristianHolidayType/CLEAN_MONDAY)))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :christian-holiday
                             :type    :clean-monday}))))
 
       (is (= (config-bean (doto (ChristianHoliday.)
                             (.setType ChristianHolidayType/CLEAN_MONDAY)
                             (.setChronology ChronologyType/JULIAN)))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday    :christian-holiday
                             :type       :clean-monday
                             :chronology :julian}))))
@@ -181,7 +169,7 @@
                                         (.setSubstitute Weekday/SATURDAY)
                                         (.setWith With/NEXT)
                                         (.setWeekday Weekday/MONDAY))))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday           :christian-holiday
                             :type              :clean-monday
                             :chronology        :julian
@@ -192,7 +180,7 @@
     (testing "For islamic holiday"
       (is (= (config-bean (doto (IslamicHoliday.)
                             (.setType IslamicHolidayType/ID_UL_ADHA)))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :islamic-holiday
                             :type    :id-ul-adha})))))
 
@@ -206,7 +194,7 @@
                             (.setTo (doto (Fixed.)
                                       (.setMonth Month/NOVEMBER)
                                       (.setDay (int 6))))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday         :fixed-weekday-between-fixed
                             :weekday         :saturday
                             :description-key :all-saints
@@ -222,7 +210,7 @@
                             (.setDay (doto (Fixed.)
                                        (.setMonth Month/APRIL)
                                        (.setDay (int 18))))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday         :fixed-weekday-relative-to-fixed
                             :which           :first
                             :weekday         :thursday
@@ -233,21 +221,21 @@
     (testing "For hindu holiday"
       (is (= (config-bean (doto (HinduHoliday.)
                             (.setType HinduHolidayType/HOLI)))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :hindu-holiday
                             :type    :holi})))))
 
     (testing "For hebrew holiday"
       (is (= (config-bean (doto (HebrewHoliday.)
                             (.setType "YOM_KIPPUR")))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :hebrew-holiday
                             :type    :yom-kippur})))))
 
     (testing "For ethiopian orthodox holiday"
       (is (= (config-bean (doto (EthiopianOrthodoxHoliday.)
                             (.setType EthiopianOrthodoxHolidayType/TIMKAT)))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday :ethiopian-orthodox-holiday
                             :type    :timkat})))))
 
@@ -255,7 +243,7 @@
       (is (= (config-bean (doto (RelativeToEasterSunday.)
                             (.setChronology ChronologyType/JULIAN)
                             (.setDays (int 12))))
-             (config-bean (edn-config/->Holiday
+             (config-bean (config/->Holiday
                            {:holiday    :relative-to-easter-sunday
                             :chronology :julian
                             :days       12}))))))
@@ -284,7 +272,7 @@
                                    (.add
                                     (doto (ChristianHoliday.)
                                       (.setType ChristianHolidayType/CLEAN_MONDAY)))))))))))
-         (config-bean (edn-config/->Configuration
+         (config-bean (config/->Configuration
                        {:description "France",
                         :hierarchy   :fr,
                         :holidays
@@ -296,17 +284,6 @@
                         [{:description "Martinique",
                           :hierarchy   :ma,
                           :holidays    [{:holiday :christian-holiday, :type :clean-monday}]}]})))))
-
-
-(deftest place-integration-test
-  (testing "Use a map literal configuration"
-    (is (clojyday/holiday?
-         :edn {:description "blah", :hierarchy :bl
-               :holidays    [{:holiday :fixed
-                              :month   :july
-                              :day     14}]}
-         (time/local-date 2017 7 14)
-         :any-holiday))))
 
 
 ;; Copyright 2018 Frederic Merizen

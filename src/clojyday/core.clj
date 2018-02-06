@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojyday.date :as date]
-   [clojyday.edn-config]                    ; For extra configuration formats
+   [clojyday.config.edn]                    ; For extra configuration formats
    [clojyday.localized :refer [-localize localized? Localized]]
    [clojyday.place :as place]
    [java-time :as time])

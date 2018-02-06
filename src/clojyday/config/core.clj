@@ -1,15 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.edn-config
+(ns clojyday.config.core
   (:require
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojyday.place :as place]
    [clojyday.util :as util])
   (:import
-   (de.jollyday ManagerParameter)
    (de.jollyday.config
     ChristianHoliday ChristianHolidayType ChronologyType Configuration
     EthiopianOrthodoxHoliday EthiopianOrthodoxHolidayType Fixed
@@ -17,11 +13,8 @@
     HebrewHoliday HinduHoliday HinduHolidayType Holiday HolidayType Holidays
     IslamicHoliday IslamicHolidayType Month MovingCondition
     RelativeToEasterSunday RelativeToFixed RelativeToWeekdayInMonth Weekday
-    When Which With)
-   (de.jollyday.datasource ConfigurationDataSource)
-   (de.jollyday.parameter BaseManagerParameter CalendarPartManagerParameter)
-   (java.io PushbackReader)
-   (de.jollyday.util ResourceUtil)))
+    When Which With)))
+
 
 (s/def ::day (s/int-in 1 32))
 
@@ -190,64 +183,6 @@
   :fn #(identical? (-> % :ret) (-> % :args :bean)))
 
 
-(def key-order
-  "Order in which keys should appear in the final edn configuration (purely for readability)"
-  [;; configuration
-   :hierarchy, :description, :holidays, :sub-configurations
-
-   ;; holiday prefix
-   :holiday
-
-   ;; fixed
-   :month, :day
-
-   ;; relative prefix
-   :when, :date, :days
-
-   ;; weekday
-   :which, :weekday, :from, :to
-
-   ;; relative suffix
-   :fixed-weekday, :every
-
-   ;; christian / islamic / hebrew / hindu / ethiopian orthodox
-   :type, :chronology
-
-   ;; holiday suffix
-   :valid-from, :valid-to, :description-key, :localized-type, :moving-conditions
-
-   ;; moving conditions
-   :substitute, :with])
-
-
-(defn sort-map
-  "Make a copy of map `m`, with keys in `key-order`.
-  Throw an exception if `m` contains unknown keys."
-  [m]
-  (let [ks (-> m keys set)
-        ordered-keys (filter ks key-order)
-        unhandled-keys (remove (set ordered-keys) ks)]
-    (when (pos? (count unhandled-keys))
-      (throw (Exception. (str "Unhandled keys " (string/join ", " unhandled-keys)))))
-    (apply array-map (mapcat #(vector % (% m)) ordered-keys))))
-
-(s/fdef sort-map
-  :args (s/cat :m map?)
-  :ret (s/map-of (set key-order) any?)
-  :fn #(= (-> % :args :m)
-          (-> % :ret)))
-
-
-(defn cal-edn-path
-  "Path for the edn configuration file for a given `calendar-name`"
-  [calendar-name]
-  (io/file "holidays" (str (name calendar-name) "-holidays.edn")))
-
-(s/fdef cal-edn-path
-  :args (s/cat :cal ::calendar-name)
-  :ret #(instance? java.io.File %))
-
-
 ;;
 
 (defmulti ->Holiday
@@ -333,53 +268,6 @@
 (s/fdef add-sub-configurations!
   :args (s/cat :configuration #(instance? Configuration %) :config ::configuration)
   :ret nil?)
-
-
-(place/add-format :edn)
-
-
-(defprotocol EdnSource
-  ""
-  (get-edn [_] ""))
-
-
-(defn manager-parameter->edn
-  ""
-  [parameter]
-  (if (satisfies? EdnSource parameter)
-    (get-edn parameter)
-    (-> parameter
-        .createResourceUrl
-        io/reader
-        PushbackReader.
-        edn/read)))
-
-
-(defmethod place/configuration-data-source :edn
-  [_]
-  (reify
-    ConfigurationDataSource
-    (getConfiguration [_ parameters]
-      (-> parameters manager-parameter->edn ->Configuration))))
-
-
-(defmethod place/-create-manager-parameters [String :edn]
-  [calendar-part _]
-  (proxy [CalendarPartManagerParameter] [(place/normalized-calendar-part calendar-part) nil]
-    (createResourceUrl []
-      (->> calendar-part
-           cal-edn-path
-           str
-          (.getResource (ResourceUtil.))))))
-
-
-(defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :edn]
-  [config _]
-  (proxy [BaseManagerParameter clojyday.edn_config.EdnSource] [nil]
-    (createCacheKey []
-      (-> config hash str))
-    (get_edn []
-      config)))
 
 
 ;; Fixed day
