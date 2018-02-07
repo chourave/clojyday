@@ -28,6 +28,29 @@
   (s/keys :req-un [::tag ::attrs ::content]))
 
 
+(defn strip-tag-namespace
+  "Discard the namespace prefix from a tag"
+  [tag]
+  (-> tag name (string/split #":" 2) last))
+
+(s/fdef strip-tag-namespace
+  :args (s/cat :tag keyword?)
+  :ret  string?)
+
+
+(defn strip-namespaces
+  "Discard the namespace prefixes from all tags in a node
+  and its descendants."
+  [node]
+  (-> node
+      (update :tag #(-> % strip-tag-namespace keyword))
+      (update :content #(map strip-namespaces %))))
+
+(s/fdef strip-namespaces
+  :args (s/cat :node `xml-node)
+  :ret `xml-node)
+
+
 (defn read-xml
   "Read a Jollyday XML calendar configuration file for the given locale
   and parse it to a xml map"
@@ -162,9 +185,7 @@
   The xml namespace is discarded."
   [tag]
   (-> tag
-      name
-      (string/split #":")
-      fnext
+      strip-tag-namespace
       util/camel->kebab
       keyword))
 

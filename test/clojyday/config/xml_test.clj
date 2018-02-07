@@ -31,6 +31,32 @@
      :content []}]})
 
 
+(deftest strip-tag-namespace-test
+  (is (= "tag"
+         (xml-config/strip-tag-namespace :ns:tag)))
+  (is (= "tag"
+         (xml-config/strip-tag-namespace :tag))))
+
+
+(deftest strip-namespaces-test
+  (is (=
+       {:tag   :Gang
+        :attrs {:name    "the Daltons"
+                :type    "family"
+                :subType "brothers"}
+        :content
+        [{:tag     :GangMember
+          :attrs   {:name "Joe" :family "Dalton"}
+          :content []}
+         {:tag     :GangMember
+          :attrs   {:name "Jack" :family "Dalton"}
+          :content []}
+         {:tag     :Pet
+          :attrs   {:name "Rantanplan"}
+          :content []}]}
+       (xml-config/strip-namespaces testing-xml))))
+
+
 ;;
 
 (deftest format?-test
