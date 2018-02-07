@@ -1,7 +1,8 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.place
-
+  "Parse a user-facing calendar and subconfiguration id into
+  a Jollyday compatible format"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]

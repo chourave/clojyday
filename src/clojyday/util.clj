@@ -1,6 +1,7 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.util
+  "String manipulation"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]))

@@ -1,12 +1,13 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.core
-
+  "User facing API of clojyday"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojyday.date :as date]
-   [clojyday.config.edn]                    ; For extra configuration formats
+   [clojyday.config.edn]
+   [clojyday.config.xml]
    [clojyday.localized :refer [-localize localized? Localized]]
    [clojyday.place :as place]
    [java-time :as time])

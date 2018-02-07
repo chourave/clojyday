@@ -1,6 +1,8 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.config.xml
+  "Parse the same xml configuration files as Jollyday, but faster,
+  and without requiring JAXB, which is getting deprecated as of Java 9."
   (:require
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
@@ -9,6 +11,7 @@
    [clojyday.config.core :as config]
    [clojyday.place :as place]
    [clojyday.util :as util])
+
   (:import
     (de.jollyday ManagerParameter)
     (de.jollyday.datasource ConfigurationDataSource)))

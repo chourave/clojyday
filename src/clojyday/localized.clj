@@ -1,6 +1,7 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.localized
+  "Protocol for adding a localized description to Jollyday-generated objects"
   (:require
    [clojure.spec.alpha :as s]))
 

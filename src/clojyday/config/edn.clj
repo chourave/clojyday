@@ -1,6 +1,8 @@
 ;; Copyright and license information at end of file
 
 (ns clojyday.config.edn
+  "Load configuration from edn files,
+  and convert xml configuration files to edn configuration files."
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -11,6 +13,7 @@
    [clojyday.config.core :as config]
    [clojyday.config.xml :as xml-config]
    [clojyday.place :as place])
+
   (:import
    (de.jollyday.datasource ConfigurationDataSource)
    (de.jollyday.parameter BaseManagerParameter CalendarPartManagerParameter)
