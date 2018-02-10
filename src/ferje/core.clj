@@ -1,15 +1,15 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.core
-  "User facing API of clojyday"
+(ns ferje.core
+  "User facing API of ferje"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojyday.date :as date]
-   [clojyday.config.edn]
-   [clojyday.config.xml]
-   [clojyday.localized :refer [-localize localized? Localized]]
-   [clojyday.place :as place]
+   [ferje.date :as date]
+   [ferje.config.edn]
+   [ferje.config.xml]
+   [ferje.localized :refer [-localize localized? Localized]]
+   [ferje.place :as place]
    [java-time :as time])
 
   (:import

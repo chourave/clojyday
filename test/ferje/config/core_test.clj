@@ -1,13 +1,13 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.core-test
+(ns ferje.config.core-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
-   [clojyday.core :as clojyday]
-   [clojyday.config.core :as config]
-   [clojyday.place :as place]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
+   [ferje.core :as ferje]
+   [ferje.config.core :as config]
+   [ferje.place :as place]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time])
   (:import
    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration

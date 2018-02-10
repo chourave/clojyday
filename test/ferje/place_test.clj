@@ -1,13 +1,13 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.place-test
+(ns ferje.place-test
 
   (:require
    [clojure.test :refer [deftest is join-fixtures testing use-fixtures]]
-   [clojyday.jaxb-utils :refer [jaxb-fixture]]
-   [clojyday.place :as place]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
-   [clojyday.util :as util])
+   [ferje.jaxb-utils :refer [jaxb-fixture]]
+   [ferje.place :as place]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
+   [ferje.util :as util])
 
   (:import
     (de.jollyday HolidayCalendar)

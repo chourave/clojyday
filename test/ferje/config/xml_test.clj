@@ -1,12 +1,12 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.xml-test
+(ns ferje.config.xml-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.xml :as xml]
-   [clojyday.config.xml :as xml-config]
-   [clojyday.place :as place]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]))
+   [ferje.config.xml :as xml-config]
+   [ferje.place :as place]
+   [ferje.spec-test-utils :refer [instrument-fixture]]))
 
 
 ;; Fixtures

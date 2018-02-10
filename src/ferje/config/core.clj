@@ -1,11 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.core
+(ns ferje.config.core
   "Represent Jollyday configuration beans as clojure maps"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojyday.util :as util])
+   [ferje.util :as util])
 
   (:import
    (de.jollyday.config

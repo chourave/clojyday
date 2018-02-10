@@ -1,11 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.date
+(ns ferje.date
   "Parse different user-facing date (interval) representations
   to a Jollyday compatible format"
   (:require
    [clojure.spec.alpha :as s]
-   [clojyday.util :refer [$]]
+   [ferje.util :refer [$]]
    [java-time :as time])
 
   (:import

@@ -1,6 +1,6 @@
 ;; Copyright and license information at end of file
 
-(def +project+ 'clojyday)
+(def +project+ 'ferje)
 (def +version+ "0.1-SNAPSHOT")
 
 (set-env!
@@ -29,8 +29,8 @@
  pom {:project     +project+
       :version     +version+
       :description ""
-      :url         "https://github.com/chourave/clojyday"
-      :scm         {:url "https://github.com/chourave/clojyday"}
+      :url         "https://github.com/chourave/ferje"
+      :scm         {:url "https://github.com/chourave/ferje"}
       :license     {"Apache-2.0" "http://www.apache.org/licenses/LICENSE-2.0"}})
 
 
@@ -70,15 +70,15 @@
 
 (deftask import-xml-calendars
   "Translate all calendar configuration files from Jollyday xml
-  to Clojyday edn"
+  to Ferje edn"
   [p pretty bool "Pretty-print the generated EDN files"]
   (let [dir (tmp-dir!)]
     (with-pre-wrap [fileset]
       (empty-dir! dir)
-      (require '[clojyday.core :as clojyday]
-               '[clojyday.config.edn :as edn-config])
+      (require '[ferje.core :as ferje]
+               '[ferje.config.edn :as edn-config])
       (let [xml->edn (resolve 'edn-config/xml->edn)
-            calendar-names (resolve 'clojyday/calendar-names)
+            calendar-names (resolve 'ferje/calendar-names)
             print (if pretty
                     (resolve 'edn-config/pretty-print)
                     (resolve 'edn-config/fast-print))]

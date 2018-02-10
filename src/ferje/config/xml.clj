@@ -1,6 +1,6 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.xml
+(ns ferje.config.xml
   "Parse the same xml configuration files as Jollyday, but faster,
   and without requiring JAXB, which is getting deprecated as of Java 9."
   (:require
@@ -8,9 +8,9 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojure.xml :as xml]
-   [clojyday.config.core :as config]
-   [clojyday.place :as place]
-   [clojyday.util :as util])
+   [ferje.config.core :as config]
+   [ferje.place :as place]
+   [ferje.util :as util])
 
   (:import
     (de.jollyday ManagerParameter)

@@ -1,12 +1,12 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.place
+(ns ferje.place
   "Parse a user-facing calendar and subconfiguration id into
   a Jollyday compatible format"
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
-   [clojyday.util :as util])
+   [ferje.util :as util])
 
   (:import
     (clojure.lang Named)
@@ -47,7 +47,7 @@
   ""
   [p]
   (as-> p %
-    (.getProperty % "clojyday.configuration-format")
+    (.getProperty % "ferje.configuration-format")
     (string/split % #"/")
     (apply keyword %)))
 
@@ -207,7 +207,7 @@
        ((juxt namespace name))
        (remove empty?)
        (string/join "/")
-       (.setProperty p "clojyday.configuration-format")))
+       (.setProperty p "ferje.configuration-format")))
 
 (s/fdef set-format!
   :args (s/cat :p parameter?

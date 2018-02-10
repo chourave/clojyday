@@ -1,18 +1,18 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.core-test
+(ns ferje.core-test
 
   (:require
    [clojure.spec.alpha :as s]
    [clojure.test :refer [deftest is join-fixtures testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
-   [clojyday.core :as clojyday]
-   [clojyday.jaxb-utils :refer [jaxb-fixture]]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
+   [ferje.core :as ferje]
+   [ferje.jaxb-utils :refer [jaxb-fixture]]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time])
 
   (:import
-   (clojyday.core Calendar)
+   (ferje.core Calendar)
    (de.jollyday HolidayCalendar)
    (java.util Locale)))
 
@@ -26,7 +26,7 @@
 ;; Calendars
 
 (defn filter-calendar [calendar]
-  (prewalk #(if (s/valid? `clojyday/calendar %)
+  (prewalk #(if (s/valid? `ferje/calendar %)
               (select-keys % [:id :zones :description-key])
               %)
            calendar))
@@ -54,16 +54,16 @@
              :sn {:id :sn, :description-key "de.sn", :zones nil}
              :he {:id :he, :description-key "de.he", :zones nil}
              :rp {:id :rp, :description-key "de.rp", :zones nil}}}
-           (filter-calendar (clojyday/calendar-hierarchy :de)))))
+           (filter-calendar (ferje/calendar-hierarchy :de)))))
 
   (testing "Sub-hierarchy"
     (is (= {:id :re, :description-key "de.by.re", :zones nil}
-           (filter-calendar (clojyday/calendar-hierarchy [:de :by :re])))))
+           (filter-calendar (ferje/calendar-hierarchy [:de :by :re])))))
 
   (testing "description"
     (is (= "München"
-           (-> (clojyday/calendar-hierarchy :de)
-               (clojyday/localize Locale/GERMAN)
+           (-> (ferje/calendar-hierarchy :de)
+               (ferje/localize Locale/GERMAN)
                (get-in [:zones :by, :zones :mu, :description]))))))
 
 
@@ -72,17 +72,17 @@
            :dk :ec :ee :es :et :fi :fr :gb :gr :hr :hu :ie :is :it :jp :kz :li
            :lt :lu :lv :md :me :mk :mt :mx :ng :ni :nl :no :nyse :nz :pa :pe
            :pl :pt :py :ro :rs :ru :se :si :sk :target :ua :us :uy :ve :za}
-         (clojyday/calendar-names))))
+         (ferje/calendar-names))))
 
 
 (deftest calendars-test
   (is (=  {:id :dk, :description nil, :description-key "dk", :zones nil}
-          (->> (clojyday/calendars)
+          (->> (ferje/calendars)
                :dk
                (into {}))))
   (is (=  {:id :dk, :description "Danemark", :description-key "dk", :zones nil}
-          (as-> (clojyday/calendars) %
-               (clojyday/localize % Locale/FRENCH)
+          (as-> (ferje/calendars) %
+               (ferje/localize % Locale/FRENCH)
                (:dk %)
                (into {} %)))))
 
@@ -90,19 +90,19 @@
 ;; Holidays
 
 (deftest parse-holiday-test
-  (is (= (clojyday/map->Holiday {:date            (time/local-date 2003 1 2)
+  (is (= (ferje/map->Holiday {:date            (time/local-date 2003 1 2)
                                  :description     nil
                                  :description-key "blah"
                                  :official?       true})
-         (clojyday/parse-holiday (de.jollyday.Holiday.
+         (ferje/parse-holiday (de.jollyday.Holiday.
                                   (time/local-date 2003 1 2)
                                   "blah"
                                   de.jollyday.HolidayType/OFFICIAL_HOLIDAY))))
-  (is (= (clojyday/map->Holiday {:date            (time/local-date 2018 12 18)
+  (is (= (ferje/map->Holiday {:date            (time/local-date 2018 12 18)
                                  :description     nil
                                  :description-key "desc"
                                  :official?       false})
-         (clojyday/parse-holiday (de.jollyday.Holiday.
+         (ferje/parse-holiday (de.jollyday.Holiday.
                                   (time/local-date 2018 12 18)
                                   "desc"
                                   de.jollyday.HolidayType/UNOFFICIAL_HOLIDAY)))))
@@ -129,30 +129,30 @@
              {:date (time/local-date 2003 11 1), :official? true, :description-key "ALL_SAINTS"}
              {:date (time/local-date 2003 11 11), :official? true, :description-key "REMEMBRANCE"}
              {:date (time/local-date 2003 12 25), :official? true, :description-key "CHRISTMAS"}}
-           (filter-holiday (clojyday/holidays :fr 2003)))))
+           (filter-holiday (ferje/holidays :fr 2003)))))
 
   (testing "For a month"
     (is (= #{{:date (time/local-date 2003 8 15), :official? true, :description-key "ASSUMPTION_MARY"}}
-           (filter-holiday (clojyday/holidays :fr {2003 8})))))
+           (filter-holiday (ferje/holidays :fr {2003 8})))))
 
   (testing "For a custom range"
     (is (= #{{:date (time/local-date 2003 7 14), :official? true, :description-key "NATIONAL_DAY"}
              {:date (time/local-date 2003 8 15), :official? true, :description-key "ASSUMPTION_MARY"}}
-           (filter-holiday (clojyday/holidays :fr [{2003 7} {2003 8}])))))
+           (filter-holiday (ferje/holidays :fr [{2003 7} {2003 8}])))))
 
   (testing "description"
     (is (= "Assomption"
-           (-> (clojyday/holidays :fr {2003 8})
+           (-> (ferje/holidays :fr {2003 8})
                first
-               (clojyday/localize Locale/FRENCH)
+               (ferje/localize Locale/FRENCH)
                :description)))))
 
 (deftest holiday?-test
   (testing "The 14th of July is a national holiday in France"
-    (is (clojyday/holiday? :fr (time/local-date 2017 7 14))))
+    (is (ferje/holiday? :fr (time/local-date 2017 7 14))))
   (testing "The 26th of December is a holiday in Alsace"
-    (is (not (clojyday/holiday? :fr (time/local-date 2017 12 26))))
-    (is (clojyday/holiday? [:fr :br] (time/local-date 2017 12 26)))))
+    (is (not (ferje/holiday? :fr (time/local-date 2017 12 26))))
+    (is (ferje/holiday? [:fr :br] (time/local-date 2017 12 26)))))
 
 
 ;; Copyright 2018 Frederic Merizen

@@ -1,4 +1,4 @@
-(ns clojyday.jaxb-utils)
+(ns ferje.jaxb-utils)
 
 
 (defn set-jaxb-context-factory [factory]

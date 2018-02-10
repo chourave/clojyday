@@ -1,6 +1,6 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.edn
+(ns ferje.config.edn
   "Load configuration from edn files,
   and convert xml configuration files to edn configuration files."
   (:require
@@ -10,9 +10,9 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [clojure.walk :refer [postwalk]]
-   [clojyday.config.core :as config]
-   [clojyday.config.xml :as xml-config]
-   [clojyday.place :as place])
+   [ferje.config.core :as config]
+   [ferje.config.xml :as xml-config]
+   [ferje.place :as place])
 
   (:import
    (de.jollyday.datasource ConfigurationDataSource)
@@ -119,7 +119,7 @@
 
 (defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :edn]
   [config _]
-  (proxy [BaseManagerParameter clojyday.config.edn.EdnSource] [nil]
+  (proxy [BaseManagerParameter ferje.config.edn.EdnSource] [nil]
     (createCacheKey []
       (-> config hash str))
     (get_edn []

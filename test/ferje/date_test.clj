@@ -1,12 +1,12 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.date-test
+(ns ferje.date-test
 
   (:require
    [clojure.spec.alpha :as s]
    [clojure.test :refer [compose-fixtures deftest is testing use-fixtures]]
-   [clojyday.date :as date]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
+   [ferje.date :as date]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time]))
 
 

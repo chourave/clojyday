@@ -1,13 +1,13 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.config.edn-test
+(ns ferje.config.edn-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
-   [clojyday.core :as clojyday]
-   [clojyday.config.edn :as edn-config]
-   [clojyday.place :as place]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
+   [ferje.core :as ferje]
+   [ferje.config.edn :as edn-config]
+   [ferje.place :as place]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time])
   (:import
    (de.jollyday.config ChristianHoliday ChristianHolidayType ChronologyType Configuration
@@ -41,7 +41,7 @@
 
 (deftest place-integration-test
   (testing "Use a map literal configuration"
-    (is (clojyday/holiday?
+    (is (ferje/holiday?
          :edn {:description "blah", :hierarchy :bl
                :holidays    [{:holiday :fixed
                               :month   :july

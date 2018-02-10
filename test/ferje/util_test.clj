@@ -1,11 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.util-test
+(ns ferje.util-test
 
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [clojyday.spec-test-utils :refer [instrument-fixture]]
-   [clojyday.util :as util]
+   [ferje.spec-test-utils :refer [instrument-fixture]]
+   [ferje.util :as util]
    [orchestra.spec.test :refer [instrument]]))
 
 

@@ -1,20 +1,24 @@
 ;; Copyright and license information at end of file
 
-(ns clojyday.spec-test-utils
+(ns ferje.localized
+  "Protocol for adding a localized description to Jollyday-generated objects"
   (:require
-   [clojure.spec.alpha :as s]
-   [expound.alpha :as expound]
-   [orchestra.spec.test :refer [instrument unstrument]]))
+   [clojure.spec.alpha :as s]))
 
-(defn instrument-fixture
-  ""
-  [f]
-  (instrument)
-  (binding [s/*explain-out* expound/printer]
-    (try
-      (f)
-      (finally
-        (unstrument)))))
+
+(defprotocol Localized
+  "Things that have a :description that can be localized."
+  (-localize [_ resource-util locale]
+    "Returns a version with a :description for the specified locale.
+  Acts recursively when it makes sense."))
+
+
+(defn localized?
+  "Does x satisy the Localized protocol?"
+  [x]
+  (satisfies? Localized x))
+
+(s/fdef localized?, :args any?, :ret boolean?)
 
 ;; Copyright 2018 Frederic Merizen
 ;;
