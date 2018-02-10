@@ -146,7 +146,7 @@
   :ret ::config/configuration)
 
 
-(defn fast-print
+(defn fast-convert
   "Read the configuration for `calendar-name` from an xml file from the
   Jollyday distribution, and print is as edn to the `writer`, with emphasis
   on the speed of the conversion."
@@ -154,20 +154,21 @@
   (binding [*out* writer]
     (prn (xml-config/read-configuration calendar-name))))
 
-(s/fdef fast-print
+(s/fdef fast-convert
   :args (s/cat :calendar-name ::config/calendar-name
                :writer #(instance? java.io.Writer %))
   :ret nil?)
 
 
-(defn pretty-print
+(defn pretty-convert
   "Read the configuration for `calendar-name` from an xml file from the
   Jollyday distribution, and print is as edn to the `writer`, with emphasis
   on a nice-looking output."
   [calendar-name writer]
-  (pprint (sorted-configuration calendar-name) writer))
+  (binding [pprint/*print-right-margin* 110]
+    (pprint (sorted-configuration calendar-name) writer)))
 
-(s/fdef pretty-print
+(s/fdef pretty-convert
   :args (s/cat :calendar-name ::config/calendar-name
                :writer #(instance? java.io.Writer %))
   :ret nil?)
@@ -175,17 +176,16 @@
 
 (defn xml->edn
   "Convert the calendar named `calendar-name` from an xml file in the Jollyday
-  distribution to an edn file in `target`. `print` should be either
-  `pretty-print` or `fast-print`."
-  [target-dir print calendar-name]
-  (binding [pprint/*print-right-margin* 110]
-    (let [f (io/file target-dir (cal-edn-path calendar-name))]
-      (io/make-parents f)
-      (print calendar-name (io/writer f)))))
+  distribution to an edn file in `target`. `convert` should be either
+  `pretty-convert` or `fast-convert`."
+  [target-dir convert calendar-name]
+  (let [f (io/file target-dir (cal-edn-path calendar-name))]
+    (io/make-parents f)
+    (convert calendar-name (io/writer f))))
 
 (s/fdef xml->edn
   :args (s/cat :target-dir string?
-               :print fn?
+               :convert fn?
                :calendar-name ::config/calendar-name)
   :ret nil?)
 

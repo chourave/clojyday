@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [ferje.date :as date]
-   [ferje.config.edn]
+   [ferje.config.edn :as edn-config]
    [ferje.config.xml]
    [ferje.localized :refer [-localize localized? Localized]]
    [ferje.place :as place]
@@ -18,7 +18,7 @@
    (java.util Locale)))
 
 
-(set! *warn-on-reflection* true)
+(try (set! *warn-on-reflection* true) (catch IllegalStateException e))
 
 
 ;; Basic field types
@@ -117,9 +117,28 @@
   :ret  (s/coll-of place/holiday-calendars :kind set?))
 
 
+(defn convert-standard-calendars
+  "Convert the xml callendars that come with Jollyday to
+  edn calendars, and write them to `target-dir`.
+  Optionally format the output in a pleasing way (the process
+  is much slower though)"
+  ([target-dir]
+   (convert-standard-calendars false))
+  ([target-dir pretty?]
+   (let [convert (if pretty?
+                   edn-config/pretty-convert
+                   edn-config/fast-convert)]
+     (doseq [cal (calendar-names)]
+       (edn-config/xml->edn target-dir convert cal)))))
+
+(s/fdef convert-standard-calendars
+  :args (s/cat :targe-dir string? :pretty? (s/? boolean?)))
+
+
 (def default-config-format
   "The calendar configuration file format that will be used when none is specified"
   :xml-clj)
+
 
 (defn calendar-hierarchy
   "Returns the id and (localizable) descriptions of a geographical place and its subdivisions"

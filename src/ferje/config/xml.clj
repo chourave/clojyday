@@ -260,7 +260,7 @@
   :ret ::config/configuration)
 
 
-;;
+;; ferje/place integration
 
 (place/add-format :xml-clj :xml)
 

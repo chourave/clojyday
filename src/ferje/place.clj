@@ -166,9 +166,9 @@
   "Instantiates the manager implementing class"
   [manager-class-name]
   (try
-    (->> manager-class-name
-         (.loadClass (ClassLoadingUtil.))
-         (.newInstance))
+    (-> (.loadClass (ClassLoadingUtil.) manager-class-name)
+        (.getConstructor (make-array Class 0))
+        (.newInstance (object-array 0)))
     (catch Exception e
       (throw (IllegalStateException.
               (str "Cannot create manager class " manager-class-name)
@@ -307,7 +307,7 @@
 
 (defn holiday-manager
   "A holiday manager for a given locale or calendar id"
-  (^HolidayManager [config-format calendar]
+  (^de.jollyday.HolidayManager [config-format calendar]
    (-> (get holiday-calendars calendar calendar)
        (create-manager-parameters config-format)
        create-manager)))

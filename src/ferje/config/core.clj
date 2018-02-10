@@ -202,9 +202,9 @@
   nil)
 
 (s/fdef add-holidays!
-  :args (s/and (s/cat :holidays java-collection?
-                      :all-holidays (s/coll-of holiday?)
-                      :type #(.isAssignableFrom Holiday %)))
+  :args (s/cat :holidays java-collection?
+               :all-holidays (s/coll-of holiday?)
+               :type #(.isAssignableFrom Holiday %))
   :ret nil?)
 
 

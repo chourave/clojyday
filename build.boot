@@ -22,7 +22,8 @@
    [metosin/boot-alt-test               "0.3.2"        :scope "test"]
    [orchestra                           "2017.11.12-1" :scope "test"]
    [org.clojure/clojure                 "1.9.0"]
-   [org.eclipse.persistence/eclipselink "2.7.1"        :scope "test"]])
+   [org.eclipse.persistence/eclipselink "2.7.1"        :scope "test"]
+   [tolitius/boot-check "0.1.7"]])
 
 
 (task-options!
@@ -36,7 +37,9 @@
 
 (require
  '[boot.pod :as pod]
- '[metosin.boot-alt-test :refer (alt-test)])
+ '[metosin.boot-alt-test :refer (alt-test)]
+ '[tolitius.boot-check :as check])
+
 
 
 (deftask test-clj
@@ -75,15 +78,9 @@
   (let [dir (tmp-dir!)]
     (with-pre-wrap [fileset]
       (empty-dir! dir)
-      (require '[ferje.core :as ferje]
-               '[ferje.config.edn :as edn-config])
-      (let [xml->edn (resolve 'edn-config/xml->edn)
-            calendar-names (resolve 'ferje/calendar-names)
-            print (if pretty
-                    (resolve 'edn-config/pretty-print)
-                    (resolve 'edn-config/fast-print))]
-        (doseq [cal  (calendar-names)]
-          (xml->edn dir print cal)))
+      (require '[ferje.core :as ferje])
+      (let [convert-standard-calendars (resolve 'ferje/convert-standard-calendars)]
+        (convert-standard-calendars dir pretty))
       (commit! (add-resource fileset dir)))))
 
 

@@ -7,12 +7,13 @@
    [ferje.jaxb-utils :refer [jaxb-fixture]]
    [ferje.place :as place]
    [ferje.spec-test-utils :refer [instrument-fixture]]
-   [ferje.util :as util])
+   [ferje.util :as util]
+   [clojure.java.io :as io])
 
   (:import
-    (de.jollyday HolidayCalendar)
-    (de.jollyday.parameter UrlManagerParameter)
-    (java.util Locale)))
+   (de.jollyday HolidayCalendar)
+   (de.jollyday.parameter UrlManagerParameter)
+   (java.util Locale)))
 
 
 ;; Fixtures
@@ -59,25 +60,30 @@
 
 ;; Parsing a place
 
+(defn get-calendar-id
+  "Prove that we can load HolidayManager that’s at
+  least superficially valid by returning its id."
+  [cal]
+  (-> (place/holiday-manager :xml-jaxb cal)
+      (.getCalendarHierarchy) (.getId)))
+
+
 (deftest holiday-manager-test
+
+  ;; Smoke test: we check that we can load a
+  ;; HolidayManager through the various
+  ;; means of identifying it.
+
   (testing "With a locale keyword identifier"
-    (is (= "fr"
-           (-> (place/holiday-manager :xml-jaxb :fr)
-               (.getCalendarHierarchy) (.getId)))))
+    (is (= "fr" (get-calendar-id :fr))))
   (testing "With a locale string identifier"
-    (is (= "fr"
-           (-> (place/holiday-manager :xml-jaxb "fr")
-               (.getCalendarHierarchy) (.getId)))))
+    (is (= "fr" (get-calendar-id "fr"))))
   (testing "With a Java locale"
-    (is (= "fr"
-           (-> (place/holiday-manager :xml-jaxb Locale/FRANCE)
-               (.getCalendarHierarchy) (.getId)))))
+    (is (= "fr" (get-calendar-id Locale/FRANCE))))
   (testing "With a an existing holiday calendar"
-    (is (= "fr"
-           (-> (place/holiday-manager :xml-jaxb (HolidayCalendar/FRANCE))
-               (.getCalendarHierarchy) (.getId)))))
+    (is (= "fr" (get-calendar-id  (HolidayCalendar/FRANCE)))))
   (testing "With a configuration file URL"
-    "TODO"))
+    (is (= "fr" (get-calendar-id (io/resource "holidays/Holidays_fr.xml"))))))
 
 
 (deftest parse-place-test

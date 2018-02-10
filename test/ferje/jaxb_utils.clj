@@ -1,8 +1,9 @@
 (ns ferje.jaxb-utils)
 
 
-(defn set-jaxb-context-factory [factory]
+(defn set-jaxb-context-factory
   "Set the context factory for JAXB (used by Jollyday)"
+  [factory]
   (System/setProperty "javax.xml.bind.JAXBContextFactory" factory))
 
 (defn jaxb-fixture
