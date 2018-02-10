@@ -17,7 +17,7 @@
  '[[clojure.java-time                   "0.3.1"]
    [de.jollyday/jollyday                "0.5.3"]
    [de.jollyday/jollyday                "0.5.3"        :scope "test" :classifier "sources"]
-   [expound                             "0.4.0"        :scope "test"]
+   [expound                             "0.5.0"        :scope "test"]
    [javax.xml.bind/jaxb-api             "2.3.0"        :scope "test"]
    [metosin/boot-alt-test               "0.3.2"        :scope "test"]
    [orchestra                           "2017.11.12-1" :scope "test"]
