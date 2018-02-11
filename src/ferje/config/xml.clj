@@ -45,9 +45,11 @@
   "Discard the namespace prefixes from all tags in a node
   and its descendants."
   [node]
-  (-> node
-      (update :tag #(-> % strip-tag-namespace keyword))
-      (update :content #(map strip-namespaces %))))
+  (if-not (map? node)
+    node
+    (-> node
+        (update :tag #(-> % strip-tag-namespace keyword))
+        (update :content #(map strip-namespaces %)))))
 
 (s/fdef strip-namespaces
   :args (s/cat :node `xml-node)
@@ -81,7 +83,7 @@
 (defn elements
   "Get the child elements with a given tag of an xml node"
   [node tag]
-  (let [prefixed (keyword (str "tns" tag))]
+  (let [prefixed (keyword tag)]
     (->> node
          :content
          (filter #(= prefixed (:tag %)))
@@ -219,7 +221,7 @@
 
 
 (defn parse-holiday
-  "Parse an xml node describing a holiday to an edn holiday description"
+  "Parse an xml node describing a holiday to a holiday description map"
   [node]
   (merge
    (parse-common-holiday-attributes node)
@@ -230,8 +232,8 @@
   :ret `config/holiday)
 
 
-(defn parse-configuration
-  "Parse an xml holiday configuration to an edn configuration"
+(defn parse-configuration'
+  "Parse an un-namespaced xml holiday configuration to a configuration map"
   [configuration]
   (let [holidays           (element configuration :Holidays)
         sub-configurations (elements configuration :SubConfigurations)
@@ -239,8 +241,20 @@
                             :hierarchy   (-> configuration (attribute :hierarchy) ->keyword)
                             :holidays    (mapv parse-holiday (:content holidays))}]
     (if sub-configurations
-      (assoc configuration :sub-configurations (mapv parse-configuration sub-configurations))
+      (assoc configuration :sub-configurations (mapv parse-configuration' sub-configurations))
       configuration)))
+
+(s/fdef parse-configuration'
+  :args (s/cat :configuration `xml-node)
+  :ret ::config/configuration)
+
+
+(defn parse-configuration
+  "Parse an xml holiday configuration to a configuration map"
+  [configuration]
+  (-> configuration
+      strip-namespaces
+      parse-configuration'))
 
 (s/fdef parse-configuration
   :args (s/cat :configuration `xml-node)
@@ -249,7 +263,7 @@
 
 (defn read-configuration
   "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and parse it to an edn configuration.
+  Jollyday distribution, and parse it to a configuration map
 
   Example: (read-configuration :fr)"
   [calendar-name]
@@ -281,7 +295,7 @@
 ;; Fixed day
 
 (defn parse-fixed
-  "Parse a fixed day and month holiday from an xml node to an edn map"
+  "Parse a fixed day and month holiday from an xml node to a map"
   [node]
   (merge
    (parse-attributes
@@ -295,13 +309,13 @@
   :ret ::config/date)
 
 
-(defmethod -parse-holiday :tns:Fixed [node]
+(defmethod -parse-holiday :Fixed [node]
   (parse-fixed node))
 
 
 ;; Weekday relative to fixed
 
-(defmethod -parse-holiday :tns:RelativeToFixed [node]
+(defmethod -parse-holiday :RelativeToFixed [node]
   (let [weekday (-> node (element :Weekday) :content first)
         days    (-> node (element :Days) :content first)
         holiday {:when (-> node (element :When) :content first ->keyword)
@@ -311,7 +325,7 @@
       days    (assoc :days (->int days)))))
 
 
-(defmethod -parse-holiday :tns:FixedWeekdayBetweenFixed [node]
+(defmethod -parse-holiday :FixedWeekdayBetweenFixed [node]
   (-> node
       (parse-attributes
        {:weekday ->keyword})
@@ -322,7 +336,7 @@
 ;; Weekday in month
 
 (defn parse-fixed-weekday
-  "Parse a fixed weekday of month from an xml node to an edn map"
+  "Parse a fixed weekday of month from an xml node to a map"
   [node]
   (parse-attributes
    node
@@ -335,13 +349,13 @@
   :ret ::config/fixed-weekday)
 
 
-(defmethod -parse-holiday :tns:FixedWeekday [node]
+(defmethod -parse-holiday :FixedWeekday [node]
   (parse-fixed-weekday node))
 
 
 ;; Relative to weekday in month
 
-(defmethod -parse-holiday :tns:RelativeToWeekdayInMonth [node]
+(defmethod -parse-holiday :RelativeToWeekdayInMonth [node]
   (-> node
       (parse-attributes
        {:weekday ->keyword
@@ -352,7 +366,7 @@
 
 ;; Weekday relative to fixed day
 
-(defmethod -parse-holiday :tns:FixedWeekdayRelativeToFixed [node]
+(defmethod -parse-holiday :FixedWeekdayRelativeToFixed [node]
   (-> node
       (parse-attributes
        {:which   ->keyword
@@ -363,7 +377,7 @@
 
 ;; Christian
 
-(defmethod -parse-holiday :tns:ChristianHoliday [node]
+(defmethod -parse-holiday :ChristianHoliday [node]
   (merge
    (parse-attributes
     node
@@ -372,14 +386,14 @@
    (parse-moving-conditions node)))
 
 
-(defmethod -parse-holiday :tns:RelativeToEasterSunday [node]
+(defmethod -parse-holiday :RelativeToEasterSunday [node]
   {:chronology (-> node (element :chronology) :content first ->keyword)
    :days       (-> node (element :days) :content first ->int)})
 
 
 ;; Islamic
 
-(defmethod -parse-holiday :tns:IslamicHoliday [node]
+(defmethod -parse-holiday :IslamicHoliday [node]
   (parse-attributes
    node
    {:type ->keyword}))
@@ -387,7 +401,7 @@
 
 ;; Hindu
 
-(defmethod -parse-holiday :tns:HinduHoliday [node]
+(defmethod -parse-holiday :HinduHoliday [node]
   (parse-attributes
    node
    {:type ->keyword}))
@@ -395,7 +409,7 @@
 
 ;; Hebrew
 
-(defmethod -parse-holiday :tns:HebrewHoliday [node]
+(defmethod -parse-holiday :HebrewHoliday [node]
   (parse-attributes
    node
    {:type ->keyword}))
@@ -403,7 +417,7 @@
 
 ;; Ethiopian orthodox
 
-(defmethod -parse-holiday :tns:EthiopianOrthodoxHoliday [node]
+(defmethod -parse-holiday :EthiopianOrthodoxHoliday [node]
   (parse-attributes
    node
    {:type ->keyword}))
