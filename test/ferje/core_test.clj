@@ -76,15 +76,13 @@
 
 
 (deftest calendars-test
-  (is (=  {:id :dk, :description nil, :description-key "dk", :zones nil}
-          (->> (ferje/calendars)
-               :dk
-               (into {}))))
-  (is (=  {:id :dk, :description "Danemark", :description-key "dk", :zones nil}
-          (as-> (ferje/calendars) %
-               (ferje/localize % Locale/FRENCH)
-               (:dk %)
-               (into {} %)))))
+  (is (= (ferje/map->Calendar {:id :dk, :description nil, :description-key "dk", :zones nil})
+         (-> (ferje/calendars)
+             :dk)))
+  (is (= (ferje/map->Calendar {:id :dk, :description "Danemark", :description-key "dk", :zones nil})
+         (-> (ferje/calendars)
+             (ferje/localize Locale/FRENCH)
+             :dk))))
 
 
 ;; Holidays
