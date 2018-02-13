@@ -142,9 +142,8 @@
 
 (defn calendar-hierarchy
   "Returns the id and (localizable) descriptions of a geographical place and its subdivisions"
-  ([place]
-   (calendar-hierarchy default-config-format place))
-  ([config-format place]
+  ([place & {:keys [config-format]
+             :or   {config-format default-config-format}}]
    (let [{::place/keys [zones ^HolidayManager manager]}
          (place/parse-place config-format place)
 
@@ -154,8 +153,8 @@
        calendar))))
 
 (s/fdef calendar-hierarchy
-  :args (s/cat :config-format (s/? place/format?)
-               :place `place/calendar-and-zones)
+  :args (s/cat :place `place/calendar-and-zones
+               :options (s/keys* :opt-un [::place/config-format]))
   :ret  `calendar)
 
 (defrecord Calendars []
@@ -206,24 +205,23 @@
 
 (defn holidays
   "Returns the holidays in a given place over a given time period"
-  ([place date-or-interval]
-   (holidays default-config-format place date-or-interval))
-  ([config-format place date-or-interval]
-   (let [{::place/keys [zones ^HolidayManager manager]}
-         (place/parse-place config-format place)
+  [place date-or-interval & {:keys [config-format]
+                             :or   {config-format default-config-format}}]
+  (let [{::place/keys [zones ^HolidayManager manager]}
+        (place/parse-place config-format place)
 
-         {::date/keys [year from to]}
-         (date/parse-date-or-interval date-or-interval)]
-     (into #{}
-           (map parse-holiday)
-           (if year
-             (.getHolidays manager year zones)
-             (.getHolidays manager from to zones))))))
+        {::date/keys [year from to]}
+        (date/parse-date-or-interval date-or-interval)]
+    (into #{}
+          (map parse-holiday)
+          (if year
+            (.getHolidays manager year zones)
+            (.getHolidays manager from to zones)))))
 
 (s/fdef holidays
-  :args (s/cat :config-format (s/? place/format?)
-               :place `place/calendar-and-zones
-               :date-or-interval `date/date-or-interval)
+  :args (s/cat :place `place/calendar-and-zones
+               :date-or-interval `date/date-or-interval
+               :options (s/keys* :opt-un [::place/config-format]))
   :ret (s/coll-of `holiday :kind set?))
 
 
@@ -234,32 +232,26 @@
    :any-holiday        nil})
 
 
+(s/def ::holiday-type #(contains? holiday-types %))
+
+
 (defn holiday?
   "Is a given date a holiday in a given place?"
-  ([place date]
-   (holiday? default-config-format place date :any-holiday))
-
-  ([place date type]
-   (apply holiday?
-          (if (place/format? place)
-           [place date type :any-holiday]
-           [default-config-format place date type])))
-
-  ([config-format place date type]
-   (let [{::place/keys [^"[Ljava.lang.String;" zones
-                        ^HolidayManager ^HolidayManager manager]}
-         (place/parse-place config-format place)]
-     (.isHoliday
-       manager
-       (time/local-date date)
-       ^HolidayType (holiday-types type)
-       zones))))
+  [place date & {:keys [config-format type]
+                 :or {config-format default-config-format, type :any-holiday}}]
+  (let [{::place/keys [^"[Ljava.lang.String;" zones
+                       ^HolidayManager ^HolidayManager manager]}
+        (place/parse-place config-format place)]
+    (.isHoliday
+     manager
+     (time/local-date date)
+     ^HolidayType (holiday-types type)
+     zones)))
 
 (s/fdef holiday?
-  :args (s/cat :config-format (s/? place/format?)
-               :place `place/calendar-and-zones
+  :args (s/cat :place `place/calendar-and-zones
                :date `date/date-or-interval
-               :type (s/? #(contains? holiday-types %)))
+               :options (s/keys* :opt-un [::place/config-format ::holiday-type]))
   :ret boolean?)
 
 

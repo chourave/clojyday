@@ -42,12 +42,13 @@
 (deftest place-integration-test
   (testing "Use a map literal configuration"
     (is (ferje/holiday?
-         :edn {:description "blah", :hierarchy :bl
-               :holidays    [{:holiday :fixed
-                              :month   :july
-                              :day     14}]}
+         {:description "blah", :hierarchy :bl
+          :holidays    [{:holiday :fixed
+                         :month   :july
+                         :day     14}]}
          (time/local-date 2017 7 14)
-         :any-holiday))))
+         :type :any-holiday
+         :config-format :edn))))
 
 
 ;; Copyright 2018 Frederic Merizen

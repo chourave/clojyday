@@ -43,6 +43,8 @@
   :ret boolean?)
 
 
+(s/def ::config-format format?)
+
 (defn get-format
   ""
   [p]
