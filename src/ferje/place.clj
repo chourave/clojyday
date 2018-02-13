@@ -21,7 +21,8 @@
 
 ;;
 
-(defonce ^{:private true, :doc ""} format-hierarchy
+(defonce ^{:private true, :doc "Hierarchy of configuration formats"}
+  format-hierarchy
   (make-hierarchy))
 
 
@@ -34,7 +35,7 @@
 
 
 (defn format?
-  ""
+  "Is `f` a known configuration format name?"
   [f]
   (isa? format-hierarchy f :any-format))
 
@@ -46,7 +47,7 @@
 (s/def ::config-format format?)
 
 (defn get-format
-  ""
+  "Retrieve the configuration format name from a parameter set"
   [p]
   (as-> p %
     (.getProperty % "ferje.configuration-format")
@@ -59,15 +60,16 @@
 
 
 (defmulti configuration-data-source
-  ""
+  "Create a configuration data source for a given parameter set"
   get-format
   :hierarchy #'format-hierarchy)
 
 
 (defmulti -create-manager-parameters
-  ""
- #(vector (type %1) %2)
- :hierarchy #'format-hierarchy)
+  "Create manager parametres for a given set of
+  cofiguration data in a configuration `format`"
+  (fn [configuration-data format] [(type configuration-data) format])
+  :hierarchy #'format-hierarchy)
 
 
 ;; Basic type predicates
@@ -185,7 +187,7 @@
 
 
 (defn add-format
-  ""
+  "Add a configuration `format` name to the format hierarchy"
   ([format]
    (add-format format :any-format))
   ([format parent]
@@ -203,7 +205,7 @@
 
 
 (defn set-format!
-  ""
+  "Store a configuration `format` name in a given configuration `p`arameter set"
   [p format]
   (->> format
        ((juxt namespace name))
@@ -295,7 +297,8 @@
 
 
 (defn create-manager-parameters
-  ""
+  "Create manager parameters for a given `calendar` configuration data
+  and configuration `format`"
   [calendar format]
   (doto (-create-manager-parameters calendar format)
     (set-format! format)))

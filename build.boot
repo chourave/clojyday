@@ -29,7 +29,7 @@
 (task-options!
  pom {:project     +project+
       :version     +version+
-      :description ""
+      :description "Computes holiday dates without need for network access or a database."
       :url         "https://github.com/chourave/ferje"
       :scm         {:url "https://github.com/chourave/ferje"}
       :license     {"Apache-2.0" "http://www.apache.org/licenses/LICENSE-2.0"}})
