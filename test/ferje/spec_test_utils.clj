@@ -7,7 +7,8 @@
    [orchestra.spec.test :refer [instrument unstrument]]))
 
 (defn instrument-fixture
-  ""
+  "Fixture that runs tests, instrumenting specs with Orchestra,
+  and producing clean spec diagnostics with Expoun"
   [f]
   (instrument)
   (binding [s/*explain-out* expound/printer]

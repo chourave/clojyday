@@ -27,14 +27,15 @@
 ;;
 
 (defn config?
-  ""
+  "is x a Jollyday configuration object?"
   [x]
   (and x
        (= "de.jollyday.config"
           (-> x class .getPackage .getName))))
 
 (defn config-bean
-  ""
+  "Create a clojure persistent map / vector representation
+  of a given Jollyday configuration bean"
   [x]
   (prewalk
    #(cond

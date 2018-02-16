@@ -83,12 +83,13 @@
 
 
 (defprotocol EdnSource
-  ""
-  (get-edn [_] ""))
+  "Protocols for manager parameters that know how to directly
+  return Ferje configuration maps"
+  (get-edn [parameters] "Return a configuration map corresponding to the parameters"))
 
 
 (defn manager-parameter->edn
-  ""
+  "Create a configuration map from manager parameters"
   [parameter]
   (if (satisfies? EdnSource parameter)
     (get-edn parameter)

@@ -155,7 +155,7 @@
          (xml-config/tag->holiday :Fixed))))
 
 (defn xml->map
-  ""
+  "Parse a string containing an xml document to a map representation"
   [s]
   (xml/parse (java.io.ByteArrayInputStream. (.getBytes s))))
 
