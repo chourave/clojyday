@@ -21,6 +21,18 @@
 (try (set! *warn-on-reflection* true) (catch IllegalStateException e))
 
 
+;; Type predicates
+
+(defn calendar-hierarchy?
+  "Is x a Jollyday CalendarHierarchy?"
+  [x]
+  (instance? CalendarHierarchy x))
+
+(s/fdef calendar-hierarchy?
+  :args (s/cat :x any?)
+  :ret boolean?)
+
+
 ;; Basic field types
 
 (s/def ::id keyword?)
@@ -64,10 +76,11 @@
     (assoc h
 
            :description
-           (.getCountryDescription
-             ^ResourceUtil resource-util
-             locale
-             description-key)
+           (or (.getCountryDescription
+                ^ResourceUtil resource-util
+                locale
+                description-key)
+               (:description h))
 
            :zones
            (when zones
@@ -75,6 +88,18 @@
                    (map (fn [[id calendar]]
                           [id (-localize calendar resource-util locale)]))
                    zones)))))
+
+
+(defn fallback-description
+  "Get the fallback descriptin from a Jollyday CalendarHierarchy"
+  [calendar]
+  (let [f (-> calendar .getClass (.getDeclaredField "fallbackDescription"))]
+    (.setAccessible f true)
+    (.get f calendar)))
+
+(s/fdef fallback-description
+  :args (s/cat :calendar calendar-hierarchy?)
+  :ret string?)
 
 
 (defn parse-calendar
@@ -87,6 +112,9 @@
          key-prefix      (str description-key ".")]
      (-> {:id
           (keyword id)
+
+          :description
+          (fallback-description calendar)
 
           :description-key
           description-key

@@ -13,7 +13,7 @@
 
   (:import
    (ferje.core Calendar)
-   (de.jollyday HolidayCalendar)
+   (de.jollyday CalendarHierarchy)
    (java.util Locale)))
 
 
@@ -21,6 +21,13 @@
 
 (use-fixtures :once
   (join-fixtures [jaxb-fixture instrument-fixture]))
+
+
+;; Type predicates
+
+(deftest calendar-hierarchy?-test
+  (is (ferje/calendar-hierarchy? (CalendarHierarchy. nil nil)))
+  (is (not (ferje/calendar-hierarchy? "bla"))))
 
 
 ;; Calendars
@@ -67,6 +74,11 @@
                (get-in [:zones :by, :zones :mu, :description]))))))
 
 
+(deftest fallback-description-test
+  (is (= "Youzou"
+         (ferje/fallback-description
+          (doto (CalendarHierarchy. nil nil) (.setFallbackDescription "Youzou"))))))
+
 (deftest calendar-names-test
   (is (= #{:al :ar :at :au :ba :be :bg :bo :br :by :ca :ch :cl :co :cr :cz :de
            :dk :ec :ee :es :et :fi :fr :gb :gr :hr :hu :ie :is :it :jp :kz :li
@@ -76,7 +88,7 @@
 
 
 (deftest calendars-test
-  (is (= (ferje/map->Calendar {:id :dk, :description nil, :description-key "dk", :zones nil})
+  (is (= (ferje/map->Calendar {:id :dk, :description "Denmark", :description-key "dk", :zones nil})
          (-> (ferje/calendars)
              :dk)))
   (is (= (ferje/map->Calendar {:id :dk, :description "Danemark", :description-key "dk", :zones nil})
