@@ -76,11 +76,13 @@
     (assoc h
 
            :description
-           (or (.getCountryDescription
-                ^ResourceUtil resource-util
-                locale
-                description-key)
-               (:description h))
+           (let [description (.getCountryDescription
+                              ^ResourceUtil resource-util
+                              locale
+                              description-key)]
+             (if (= ResourceUtil/UNDEFINED description)
+               (or (:description h) description)
+               description))
 
            :zones
            (when zones

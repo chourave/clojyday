@@ -79,6 +79,23 @@
          (ferje/fallback-description
           (doto (CalendarHierarchy. nil nil) (.setFallbackDescription "Youzou"))))))
 
+
+(deftest description-test
+  (testing "For a calendar"
+    (is (= "France"
+           (->
+            (ferje/localize
+             (ferje/map->Calendar {:description-key "fr"})
+             Locale/FRENCH)
+            :description)))
+    (is (= "broll"
+           (->
+            (ferje/localize
+             (ferje/map->Calendar {:description "broll"
+                                   :description-key "schmutt"})
+             Locale/FRENCH)
+            :description)))))
+
 (deftest calendar-names-test
   (is (= #{:al :ar :at :au :ba :be :bg :bo :br :by :ca :ch :cl :co :cr :cz :de
            :dk :ec :ee :es :et :fi :fr :gb :gr :hr :hu :ie :is :it :jp :kz :li
