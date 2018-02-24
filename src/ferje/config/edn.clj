@@ -5,10 +5,10 @@
 
 (s/def substitution
   (s/cat
-   :from ::config/weekday
+   :substitute ::config/weekday
    :fluff (s/? #{:with})
-   :direction ::config/with
-   :to ::config/weekday))
+   :with ::config/with
+   :weekday ::config/weekday))
 
 
 (s/def moving-conditions
@@ -155,19 +155,45 @@
   (some-> holiday val :definition val))
 
 
+(defn parse-moving-conditions
+  ""
+  [holiday]
+  (when-let [conditions (:moving-conditions holiday)]
+    {:moving-conditions
+     (into []
+           (mapcat (fn [{:keys [substitutions]}]
+                     (map #(select-keys % [:substitute :with :weekday]) substitutions)))
+           conditions)}))
+
 (defn parse-fixed-edn
   ""
   [fixed]
-  (select-keys fixed [:month :day]))
+  (merge
+   (select-keys fixed [:month :day])
+   (parse-moving-conditions fixed)))
 
 (defmethod -edn->holiday :fixed
   [holiday]
   (parse-fixed-edn (composite-definition holiday)))
 
+(defn format-moving-conditions
+  ""
+  [holiday]
+  (when-let [moving-conditions (:moving-conditions holiday)]
+    (into [:substitute]
+          (mapcat (juxt :substitute (constantly :with) :with :weekday))
+          moving-conditions)))
+
+(defn format-fixed-edn
+  ""
+  [fixed]
+  (let [{:keys [month day]} fixed]
+    (into [month day]
+          (format-moving-conditions fixed))))
+
 (defmethod -holiday->edn :fixed
   [holiday]
-  (let [{:keys [month day]} holiday]
-    [month day]))
+  (format-fixed-edn holiday))
 
 
 (defmethod -edn->holiday :relative-to-fixed
@@ -184,9 +210,8 @@
 (defmethod -holiday->edn :relative-to-fixed
   [holiday]
   (let [{:keys [when days weekday date]} holiday
-        {:keys [ month day]}             date
         offset                           (if days [days :days] [weekday])]
-    (into offset [when month day])))
+    (into offset (cons when (format-fixed-edn date)))))
 
 
 (defmethod -edn->holiday :fixed-weekday-between-fixed
@@ -199,7 +224,11 @@
 (defmethod -holiday->edn :fixed-weekday-between-fixed
   [holiday]
   (let [{:keys [from to weekday]} holiday]
-    [weekday :between (:month from) (:day from) :and (:month to) (:day to)]))
+    (into [weekday :between]
+          (concat
+           (format-fixed-edn from)
+           [:and]
+           (format-fixed-edn to)))))
 
 
 (defn parse-fixed-weekday-edn
@@ -238,9 +267,10 @@
 
 (defmethod -holiday->edn :fixed-weekday-relative-to-fixed
   [holiday]
-  (let [{:keys [which weekday when date]} holiday
-        {:keys [month day]} date]
-    [which weekday when month day]))
+  (let [{:keys [which weekday when date]} holiday]
+    (into
+     [which weekday when]
+     (format-fixed-edn date))))
 
 
 (defmethod -edn->holiday :christian-holiday
@@ -248,22 +278,27 @@
   (if-let [definition (composite-definition holiday)]
     (let [{:keys [chronology]} definition]
       (cond-> (select-keys definition [:type])
-              chronology (assoc :chronology chronology)))
+        chronology (assoc :chronology chronology)
+        :alwas (merge (parse-moving-conditions definition))))
     {:type (val holiday)}))
 
 (defmethod -holiday->edn :christian-holiday
   [holiday]
-  (let [{:keys [type chronology]} holiday]
-    (if chronology
-      [chronology type]
-      type)))
+  (let [{:keys [type chronology]} holiday
+        [head tail :as result]    (into []
+                                        (keep identity)
+                                        (concat [chronology type]
+                                                (format-moving-conditions holiday)))]
+    (if tail result head)))
 
 
 (defmethod -edn->holiday :relative-to-easter-sunday
   [holiday]
-  (let [{:keys [days when chronology] :or {when :after, chronology :gregorian}} (composite-definition holiday)
+  (let [{:keys [days when chronology] :or {when :after, chronology :gregorian}}
+        (composite-definition holiday)
+
         sign ({:before -1, :after 1} when)]
-    {:days  (* sign days)
+    {:days       (* sign days)
      :chronology chronology}))
 
 (defmethod -holiday->edn :relative-to-easter-sunday

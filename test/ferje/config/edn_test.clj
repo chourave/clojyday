@@ -83,7 +83,26 @@
 (deftest edn->holiday-test
   (testing "fixed"
     (is (= {:holiday :fixed, :month :january, :day 5}
-           (edn-config/edn->holiday [:january 5]))))
+           (edn-config/edn->holiday [:january 5])))
+
+    (is (= {:holiday :fixed, :month :january, :day 5
+            :moving-conditions [{:substitute :monday :with :next :weekday :monday}]}
+           (edn-config/edn->holiday [:january 5
+                                     :substitute :monday :with :next :monday])))
+
+    (is (= {:holiday :fixed, :month :january, :day 5
+            :moving-conditions [{:substitute :monday :with :next :weekday :sunday}
+                                {:substitute :saturday :with :previous :weekday :friday}]}
+           (edn-config/edn->holiday [:january 5
+                                     :substitute :monday :with :next :sunday,
+                                                 :saturday :with :previous :friday])))
+
+    (is (= {:holiday :fixed, :month :january, :day 5
+            :moving-conditions [{:substitute :monday :with :next :weekday :sunday}
+                                {:substitute :saturday :with :previous :weekday :friday}]}
+           (edn-config/edn->holiday [:january 5
+                                     :substitute :monday :with :next :sunday,
+                                     :substitute :saturday :with :previous :friday]))))
 
   (testing "relative to fixed"
     (is (= {:holiday :relative-to-fixed
@@ -160,7 +179,11 @@
            (edn-config/edn->holiday [:easter])))
 
     (is (= {:holiday :christian-holiday, :type :easter, :chronology :julian}
-           (edn-config/edn->holiday [:julian :easter]))))
+           (edn-config/edn->holiday [:julian :easter])))
+
+    (is (= {:holiday :christian-holiday, :type :easter
+            :moving-conditions [{:substitute :monday :with :next :weekday :monday}]}
+           (edn-config/edn->holiday [:easter :substitute :monday :with :next :monday]))))
 
   (testing "relative to easter sunday"
     (is (= {:holiday :relative-to-easter-sunday
@@ -208,7 +231,13 @@
 (deftest holiday->edn-test
   (testing "fixed"
     (is (= [:january 5]
-           (edn-config/holiday->edn {:holiday :fixed, :month :january, :day 5}))))
+           (edn-config/holiday->edn {:holiday :fixed, :month :january, :day 5})))
+
+    (is (= [:march 30 :substitute :sunday :with :previous :friday, :monday :with :next :tuesday]
+           (edn-config/holiday->edn
+            {:holiday           :fixed, :month :march, :day 30
+             :moving-conditions [{:substitute :sunday :with :previous :weekday :friday}
+                                 {:substitute :monday :with :next :weekday :tuesday}]}))))
 
   (testing "relative to fixed"
     (is (= [8 :days :after :march 1]
@@ -260,7 +289,12 @@
            (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter})))
 
     (is (= [:julian :easter]
-           (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :chronology :julian}))))
+           (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :chronology :julian})))
+
+    (is (= [:easter :substitute :sunday :with :previous :friday]
+           (edn-config/holiday->edn
+            {:holiday :christian-holiday, :type :easter
+             :moving-conditions [{:substitute :sunday :with :previous :weekday :friday}]}))))
 
   (testing "relative to easter sunday"
     (is (= [3 :days :before :gregorian :easter]
