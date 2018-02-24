@@ -41,6 +41,8 @@
 
 (s/def ::substitute ::weekday)
 
+(s/def ::with #{:next :previous})
+
 (s/def ::moving-conditions
   (s/coll-of
    (s/keys :req-un [::substitute ::with ::weekday])))
@@ -48,6 +50,10 @@
 (s/def ::date
   (s/keys :req-un [::month ::day]
           :opt-un [::moving-conditions]))
+
+(s/def ::from ::date)
+
+(s/def ::to ::date)
 
 (s/def ::days int?)
 
