@@ -1,8 +1,8 @@
 ;; Copyright and license information at end of file
 
-(ns ferje.config.edn
-  "Load configuration from edn files,
-  and convert xml configuration files to edn configuration files."
+(ns ferje.config.raw
+  "Load configuration from raw edn files,
+  and convert xml configuration files to raw edn configuration files."
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -22,7 +22,7 @@
 
 
 (def key-order
-  "Order in which keys should appear in the final edn configuration (purely for readability)"
+  "Order in which keys should appear in the raw edn configuration (purely for readability)"
   [;; configuration
    :hierarchy, :description, :holidays, :sub-configurations
 
@@ -70,7 +70,7 @@
 
 
 (defn cal-edn-path
-  "Path for the edn configuration file for a given `calendar-name`"
+  "Path for the raw edn configuration file for a given `calendar-name`"
   [calendar-name]
   (io/file "holidays" (str (name calendar-name) "-holidays.edn")))
 
@@ -79,20 +79,20 @@
   :ret #(instance? java.io.File %))
 
 
-(place/add-format :edn)
+(place/add-format :raw)
 
 
-(defprotocol EdnSource
+(defprotocol ConfigSource
   "Protocols for manager parameters that know how to directly
   return Ferje configuration maps"
-  (get-edn [parameters] "Return a configuration map corresponding to the parameters"))
+  (get-config [parameters] "Return a configuration map corresponding to the parameters"))
 
 
-(defn manager-parameter->edn
+(defn manager-parameter->config
   "Create a configuration map from manager parameters"
   [parameter]
-  (if (satisfies? EdnSource parameter)
-    (get-edn parameter)
+  (if (satisfies? ConfigSource parameter)
+    (get-config parameter)
     (-> parameter
         .createResourceUrl
         io/reader
@@ -100,15 +100,15 @@
         edn/read)))
 
 
-(defmethod place/configuration-data-source :edn
+(defmethod place/configuration-data-source :raw
   [_]
   (reify
     ConfigurationDataSource
     (getConfiguration [_ parameters]
-      (-> parameters manager-parameter->edn config/->Configuration))))
+      (-> parameters manager-parameter->config config/->Configuration))))
 
 
-(defmethod place/-create-manager-parameters [String :edn]
+(defmethod place/-create-manager-parameters [String :raw]
   [calendar-part _]
   (proxy [CalendarPartManagerParameter] [(place/normalized-calendar-part calendar-part) nil]
     (createResourceUrl []
@@ -118,18 +118,18 @@
           (.getResource (ResourceUtil.))))))
 
 
-(defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :edn]
+(defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :raw]
   [config _]
-  (proxy [BaseManagerParameter ferje.config.edn.EdnSource] [nil]
+  (proxy [BaseManagerParameter ferje.config.raw.ConfigSource] [nil]
     (createCacheKey []
       (-> config hash str))
-    (get_edn []
+    (get_config []
       config)))
 
 
 (defn sorted-configuration
   "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and parse it to an edn configuration, sorting
+  Jollyday distribution, and parse it to a raw edn configuration, sorting
   keys to make it easier to read for humans.
 
   Example: (sorted-configuration :fr)"
@@ -149,7 +149,7 @@
 
 (defn fast-convert
   "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and print is as edn to the `writer`, with emphasis
+  Jollyday distribution, and print is a raw edn to the `writer`, with emphasis
   on the speed of the conversion."
   [calendar-name writer]
   (binding [*out* writer]
@@ -163,7 +163,7 @@
 
 (defn pretty-convert
   "Read the configuration for `calendar-name` from an xml file from the
-  Jollyday distribution, and print is as edn to the `writer`, with emphasis
+  Jollyday distribution, and print is as raw edn to the `writer`, with emphasis
   on a nice-looking output."
   [calendar-name writer]
   (binding [pprint/*print-right-margin* 110]
@@ -175,16 +175,16 @@
   :ret nil?)
 
 
-(defn xml->edn
+(defn xml->raw
   "Convert the calendar named `calendar-name` from an xml file in the Jollyday
-  distribution to an edn file in `target`. `convert` should be either
+  distribution to a raw edn file in `target`. `convert` should be either
   `pretty-convert` or `fast-convert`."
   [target-dir convert calendar-name]
   (let [f (io/file target-dir (cal-edn-path calendar-name))]
     (io/make-parents f)
     (convert calendar-name (io/writer f))))
 
-(s/fdef xml->edn
+(s/fdef xml->raw
   :args (s/cat :target-dir string?
                :convert fn?
                :calendar-name ::config/calendar-name)

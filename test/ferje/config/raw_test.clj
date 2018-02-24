@@ -1,11 +1,11 @@
 ;; Copyright and license information at end of file
 
-(ns ferje.config.edn-test
+(ns ferje.config.raw-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.walk :refer [prewalk]]
    [ferje.core :as ferje]
-   [ferje.config.edn :as edn-config]
+   [ferje.config.raw :as raw-config]
    [ferje.place :as place]
    [ferje.spec-test-utils :refer [instrument-fixture]]
    [java-time :as time])
@@ -27,16 +27,16 @@
 ;;
 
 (deftest format?-test
-  (is (place/format? :edn)))
+  (is (place/format? :raw)))
 
 
 (deftest sort-map-test
   (is (= "{:month :may, :day 1}"
          (-> {:day 1, :month :may}
-             edn-config/sort-map
+             raw-config/sort-map
              pr-str)))
   (is (thrown-with-msg? Exception #"Unhandled keys :foo"
-                        (edn-config/sort-map {:foo 1}))))
+                        (raw-config/sort-map {:foo 1}))))
 
 
 (deftest place-integration-test
@@ -48,7 +48,7 @@
                          :day     14}]}
          (time/local-date 2017 7 14)
          :type :any-holiday
-         :config-format :edn))))
+         :config-format :raw))))
 
 
 ;; Copyright 2018 Frederic Merizen

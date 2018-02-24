@@ -6,7 +6,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as string]
    [ferje.date :as date]
-   [ferje.config.edn :as edn-config]
+   [ferje.config.raw :as raw-config]
    [ferje.config.xml]
    [ferje.localized :refer [-localize localized? Localized]]
    [ferje.place :as place]
@@ -149,17 +149,17 @@
 
 (defn convert-standard-calendars
   "Convert the xml callendars that come with Jollyday to
-  edn calendars, and write them to `target-dir`.
+  raw edn calendars, and write them to `target-dir`.
   Optionally format the output in a pleasing way (the process
   is much slower though)"
   ([target-dir]
    (convert-standard-calendars false))
   ([target-dir pretty?]
    (let [convert (if pretty?
-                   edn-config/pretty-convert
-                   edn-config/fast-convert)]
+                   raw-config/pretty-convert
+                   raw-config/fast-convert)]
      (doseq [cal (calendar-names)]
-       (edn-config/xml->edn target-dir convert cal)))))
+       (raw-config/xml->raw target-dir convert cal)))))
 
 (s/fdef convert-standard-calendars
   :args (s/cat :targe-dir string? :pretty? (s/? boolean?)))
