@@ -29,14 +29,14 @@
    ;; holiday prefix
    :holiday
 
-   ;; fixed
-   :month, :day
+   ;; weekday
+   :which, :weekday, :from, :to
 
    ;; relative prefix
    :when, :date, :days
 
-   ;; weekday
-   :which, :weekday, :from, :to
+   ;; fixed
+   :month, :day
 
    ;; relative suffix
    :fixed-weekday, :every
