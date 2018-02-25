@@ -96,12 +96,12 @@
                       :ethiopian-orthodox-holiday
                       :ethiopian-orthodox/type)
 
-         :options    (s/cat
-                      :options (s/keys* :opt-un [::config/valid-from
-                                                 ::config/valid-to
-                                                 ::config/every
-                                                 ::config/description-key])
-                      :localized-type (s/? #{:official :unofficial :inofficial})))))
+         :options (s/keys* :opt-un [::config/valid-from
+                                    ::config/valid-to
+                                    ::config/every
+                                    ::config/description-key])
+
+         :localized-type (s/? #{:official :unofficial :inofficial}))))
 
 
 (defn holiday-type
@@ -122,13 +122,33 @@
   ""
   holiday-type)
 
+(defn parse-common-options
+  ""
+  [conformed-holiday]
+  (select-keys (-> conformed-holiday val :options)
+               [:valid-from :valid-to :every :description-key]))
+
+(defn parse-official-marker
+  ""
+  [conformed-holiday]
+  (when-let [localized-type
+             (some-> conformed-holiday
+                     val
+                     :localized-type
+                     {:inofficial :unofficial-holiday
+                      :unofficial :unofficial-holiday
+                      :official   :official-holiday})]
+    {:localized-type localized-type}))
+
 (defn edn->holiday
   ""
   [holiday]
   (let [conformed (s/conform `holiday holiday)]
-    (assoc
-     (-edn->holiday conformed)
-     :holiday (holiday-type conformed))))
+    (-> conformed
+        -edn->holiday
+        (assoc :holiday (holiday-type conformed))
+        (merge (parse-common-options conformed)
+               (parse-official-marker conformed)))))
 
 (s/fdef edn->holiday
   :args (s/cat :holiday `holiday)
@@ -139,10 +159,33 @@
   ""
   :holiday)
 
+
+(defn format-common-options
+  ""
+  [holiday]
+  (mapcat
+   (fn [[_ v :as x]] (when v x))
+   (select-keys holiday [:valid-from :valid-to :every :description-key])))
+
+(defn format-official-marker
+  ""
+  [holiday]
+  (when (= :unofficial-holiday (:localized-type holiday))
+    [:unofficial]))
+
+(defn simplify-edn
+  ""
+  [holiday]
+  (if (next holiday) holiday (first holiday)))
+
 (defn holiday->edn
   ""
   [holiday]
-  (-holiday->edn holiday))
+  (-> holiday
+      -holiday->edn
+      (into (format-common-options holiday))
+      (into (format-official-marker holiday))
+      simplify-edn))
 
 (s/fdef holiday->edn
   :args (s/cat :holiday `config/holiday)
@@ -284,12 +327,11 @@
 
 (defmethod -holiday->edn :christian-holiday
   [holiday]
-  (let [{:keys [type chronology]} holiday
-        [head tail :as result]    (into []
-                                        (keep identity)
-                                        (concat [chronology type]
-                                                (format-moving-conditions holiday)))]
-    (if tail result head)))
+  (let [{:keys [type chronology]} holiday]
+    (into []
+          (keep identity)
+          (concat [chronology type]
+                  (format-moving-conditions holiday)))))
 
 
 (defmethod -edn->holiday :relative-to-easter-sunday
@@ -312,9 +354,8 @@
 (defn parse-simple-type-edn
   ""
   [holiday]
-  (if-let [definition (composite-definition holiday)]
-    (select-keys definition [:type])
-    {:type (val holiday)}))
+  {:type (or (composite-definition holiday)
+             (val holiday))})
 
 (defmethod -edn->holiday :islamic-holiday
   [holiday]
@@ -323,7 +364,7 @@
 (defn format-simple-type-edn
   ""
   [holiday]
-  (:type holiday))
+  [(:type holiday)])
 
 (defmethod -holiday->edn :islamic-holiday
   [holiday]

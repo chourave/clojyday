@@ -85,19 +85,19 @@
     (is (= {:holiday :fixed, :month :january, :day 5}
            (edn-config/edn->holiday [:january 5])))
 
-    (is (= {:holiday :fixed, :month :january, :day 5
+    (is (= {:holiday           :fixed, :month :january, :day 5
             :moving-conditions [{:substitute :monday :with :next :weekday :monday}]}
            (edn-config/edn->holiday [:january 5
                                      :substitute :monday :with :next :monday])))
 
-    (is (= {:holiday :fixed, :month :january, :day 5
+    (is (= {:holiday           :fixed, :month :january, :day 5
             :moving-conditions [{:substitute :monday :with :next :weekday :sunday}
                                 {:substitute :saturday :with :previous :weekday :friday}]}
            (edn-config/edn->holiday [:january 5
                                      :substitute :monday :with :next :sunday,
-                                                 :saturday :with :previous :friday])))
+                                     :saturday :with :previous :friday])))
 
-    (is (= {:holiday :fixed, :month :january, :day 5
+    (is (= {:holiday           :fixed, :month :january, :day 5
             :moving-conditions [{:substitute :monday :with :next :weekday :sunday}
                                 {:substitute :saturday :with :previous :weekday :friday}]}
            (edn-config/edn->holiday [:january 5
@@ -181,33 +181,33 @@
     (is (= {:holiday :christian-holiday, :type :easter, :chronology :julian}
            (edn-config/edn->holiday [:julian :easter])))
 
-    (is (= {:holiday :christian-holiday, :type :easter
+    (is (= {:holiday           :christian-holiday, :type :easter
             :moving-conditions [{:substitute :monday :with :next :weekday :monday}]}
            (edn-config/edn->holiday [:easter :substitute :monday :with :next :monday]))))
 
   (testing "relative to easter sunday"
-    (is (= {:holiday :relative-to-easter-sunday
-            :days -3
+    (is (= {:holiday    :relative-to-easter-sunday
+            :days       -3
             :chronology :gregorian}
            (edn-config/edn->holiday [3 :days :before :easter])))
 
-    (is (= {:holiday :relative-to-easter-sunday
-            :days 3
+    (is (= {:holiday    :relative-to-easter-sunday
+            :days       3
             :chronology :gregorian}
            (edn-config/edn->holiday [3 :days :after :easter])))
 
-    (is (= {:holiday :relative-to-easter-sunday
-            :days 5
+    (is (= {:holiday    :relative-to-easter-sunday
+            :days       5
             :chronology :gregorian}
            (edn-config/edn->holiday [5 :after :easter])))
 
-    (is (= {:holiday :relative-to-easter-sunday
-            :days -1
+    (is (= {:holiday    :relative-to-easter-sunday
+            :days       -1
             :chronology :gregorian}
            (edn-config/edn->holiday [-1 :easter])))
 
-    (is (= {:holiday :relative-to-easter-sunday
-            :days -3
+    (is (= {:holiday    :relative-to-easter-sunday
+            :days       -3
             :chronology :julian}
            (edn-config/edn->holiday [3 :days :before :julian :easter]))))
 
@@ -225,7 +225,29 @@
 
   (testing "ethiopian orthodox holiday"
     (is (= {:holiday :ethiopian-orthodox-holiday, :type :timkat}
-           (edn-config/edn->holiday :timkat)))))
+           (edn-config/edn->holiday :timkat))))
+
+  (testing "common options"
+    (is (= {:holiday :hebrew-holiday, :type :hanukkah, :valid-from 1902}
+           (edn-config/edn->holiday [:hanukkah :valid-from 1902])))
+
+    (is (= {:holiday :fixed, :day 1, :month :january, :valid-to 1801}
+           (edn-config/edn->holiday [:january 1 :valid-to 1801])))
+
+    (is (= {:holiday :christian-holiday, :type :easter, :every :6-years}
+           (edn-config/edn->holiday [:easter :every :6-years])))
+
+    (is (= {:holiday :christian-holiday, :type :easter, :chronology :julian, :description-key :fnord}
+           (edn-config/edn->holiday [:julian :easter :description-key :fnord])))
+
+    (is (= {:holiday :christian-holiday, :type :easter, :localized-type :unofficial-holiday}
+           (edn-config/edn->holiday [:easter :unofficial])))
+
+    (is (= {:holiday :christian-holiday, :type :easter, :localized-type :unofficial-holiday}
+           (edn-config/edn->holiday [:easter :inofficial])))
+
+    (is (= {:holiday :christian-holiday, :type :easter, :localized-type :official-holiday}
+           (edn-config/edn->holiday [:easter :official])))))
 
 
 (deftest holiday->edn-test
@@ -293,7 +315,7 @@
 
     (is (= [:easter :substitute :sunday :with :previous :friday]
            (edn-config/holiday->edn
-            {:holiday :christian-holiday, :type :easter
+            {:holiday           :christian-holiday, :type :easter
              :moving-conditions [{:substitute :sunday :with :previous :weekday :friday}]}))))
 
   (testing "relative to easter sunday"
@@ -323,5 +345,22 @@
 
   (testing "ethiopian orthodox holiday"
     (is (= :meskel
-           (edn-config/holiday->edn {:holiday :ethiopian-orthodox-holiday, :type :meskel})))))
+           (edn-config/holiday->edn {:holiday :ethiopian-orthodox-holiday, :type :meskel}))))
 
+  (testing "common options"
+    (is (= [:hanukkah :valid-from 1902]
+           (edn-config/holiday->edn {:holiday :hebrew-holiday, :type :hanukkah, :valid-from 1902})))
+
+    (is (= [:january 1 :valid-to 1801]
+           (edn-config/holiday->edn {:holiday :fixed, :day 1, :month :january, :valid-to 1801})))
+
+    (is (= [:easter :every :6-years]
+           (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :every :6-years})))
+
+    (is (= [:julian :easter :description-key :fnord]
+           (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :chronology :julian, :description-key :fnord})))
+
+    (is (= [:easter :unofficial]
+           (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :localized-type :unofficial-holiday})))))
+
+; todo : options for parse
