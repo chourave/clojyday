@@ -363,4 +363,49 @@
     (is (= [:easter :unofficial]
            (edn-config/holiday->edn {:holiday :christian-holiday, :type :easter, :localized-type :unofficial-holiday})))))
 
-; todo : options for parse
+
+(deftest edn->configuration-test
+  (is (= {:hierarchy   :us
+          :description "United States"
+          :holidays    [{:holiday :fixed :month :january :day 1}]}
+         (edn-config/edn->configuration
+          {:hierarchy   :us
+           :description "United States"
+           :holidays    [[:january 1]]})))
+
+  (is (= {:hierarchy          :us
+          :description        "United States"
+          :holidays           [{:holiday :fixed :month :january :day 1}]
+          :sub-configurations [{:hierarchy   :ny
+                                :description "New York"
+                                :holidays    [{:holiday :fixed, :month :february, :day 12}]}]}
+         (edn-config/edn->configuration
+          {:hierarchy          :us
+           :description        "United States"
+           :holidays           [[:january 1]]
+           :sub-configurations [{:hierarchy   :ny
+                                 :description "New York"
+                                 :holidays    [[:february 12]]}]}))))
+
+(deftest configuration->edn-test
+  (is (= {:hierarchy   :us
+          :description "United States"
+          :holidays    [[:january 1]]}
+         (edn-config/configuration->edn
+          {:hierarchy   :us
+           :description "United States"
+           :holidays    [{:holiday :fixed :month :january :day 1}]})))
+
+  (is (= {:hierarchy          :us
+          :description        "United States"
+          :holidays           [[:january 1]]
+          :sub-configurations [{:hierarchy   :ny
+                                :description "New York"
+                                :holidays    [[:february 12]]}]}
+         (edn-config/configuration->edn
+          {:hierarchy   :us
+           :description "United States"
+           :holidays    [{:holiday :fixed :month :january :day 1}]
+           :sub-configurations [{:hierarchy :ny
+                                 :description "New York"
+                                 :holidays [{:holiday :fixed, :month :february, :day 12}]}]}))))

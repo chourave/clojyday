@@ -104,6 +104,14 @@
          :localized-type (s/? #{:official :unofficial :inofficial}))))
 
 
+(s/def ::holidays (s/coll-of `holiday))
+
+(s/def ::sub-configurations (s/coll-of ::configuration))
+
+(s/def ::configuration
+  (s/keys :req-un [::config/description ::config/hierarchy ::holidays]
+          :opt-un [::sub-configurations]))
+
 (defn holiday-type
   ""
   [conformed-holiday]
@@ -154,6 +162,16 @@
   :args (s/cat :holiday `holiday)
   :ret `config/holiday)
 
+(defn edn->configuration
+  ""
+  [configuration]
+  (cond-> (update configuration :holidays #(map edn->holiday %))
+    (:sub-configurations configuration) (update :sub-configurations #(map edn->configuration %))))
+
+(s/fdef edn->configuration
+  :args (s/cat :configuration ::configuration)
+  :ret ::config/configuration)
+
 
 (defmulti -holiday->edn
   ""
@@ -190,6 +208,16 @@
 (s/fdef holiday->edn
   :args (s/cat :holiday `config/holiday)
   :ret `holiday)
+
+(defn configuration->edn
+  ""
+  [configuration]
+  (cond-> (update configuration :holidays #(map holiday->edn %))
+    (:sub-configurations configuration) (update :sub-configurations #(map configuration->edn %))))
+
+(s/fdef configuration->edn
+  :args (s/cat :configuration ::config/configuration)
+  :ret ::configuration)
 
 
 (defn composite-definition
