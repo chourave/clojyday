@@ -1,9 +1,21 @@
 ;; Copyright and license information at end of file
 
 (ns ferje.config.edn
+
   (:require
    [clojure.spec.alpha :as s]
-   [ferje.config.core :as config]))
+   [ferje.config.core :as config]
+   [ferje.config.raw :as raw]
+   [ferje.place :as place])
+
+  (:import
+   (de.jollyday.datasource ConfigurationDataSource)
+   (de.jollyday.parameter BaseManagerParameter CalendarPartManagerParameter)
+   (ferje.config.raw ConfigSource)
+   (de.jollyday.util ResourceUtil)))
+
+
+(place/add-format :edn)
 
 (s/def substitution
   (s/cat
@@ -173,6 +185,36 @@
 (s/fdef edn->configuration
   :args (s/cat :configuration ::configuration)
   :ret ::config/configuration)
+
+
+(defmethod place/configuration-data-source :edn
+  [_]
+  (reify
+    ConfigurationDataSource
+    (getConfiguration [_ parameters]
+      (-> parameters
+          raw/manager-parameter->config
+          edn->configuration
+          config/->Configuration))))
+
+
+(defmethod place/-create-manager-parameters [String :edn]
+  [calendar-part _]
+  (proxy [CalendarPartManagerParameter] [(place/normalized-calendar-part calendar-part) nil]
+    (createResourceUrl []
+      (->> calendar-part
+           raw/cal-edn-path
+           str
+           (.getResource (ResourceUtil.))))))
+
+
+(defmethod place/-create-manager-parameters [clojure.lang.IPersistentMap :edn]
+  [config _]
+  (proxy [BaseManagerParameter ConfigSource] [nil]
+    (createCacheKey []
+      (-> config hash str))
+    (get_config []
+      config)))
 
 
 (defmulti -holiday->edn
