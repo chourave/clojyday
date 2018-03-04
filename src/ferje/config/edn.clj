@@ -17,108 +17,172 @@
 
 (place/add-format :edn)
 
-(s/def substitution
+
+(defn tag
+  ""
+  [tag]
+  (let [tag (name tag)]
+    #{tag (keyword tag) (symbol tag)}))
+
+
+(defn fluff
+  ""
+  [fluff]
+  (s/? (tag fluff)))
+
+(defn named-as
+  ""
+  [values]
+  (let [values (into #{}
+                     (mapcat tag)
+                     values)]
+    (s/conformer #(or (some-> % values name keyword)
+                   ::s/invalid))))
+
+
+(s/def ::substitution
   (s/cat
-   :substitute ::config/weekday
-   :fluff (s/? #{:with})
-   :with ::config/with
-   :weekday ::config/weekday))
+   :substitute (named-as config/weekdays)
+   :fluff (fluff :with)
+   :with (named-as config/withs)
+   :weekday (named-as config/weekdays)))
 
 
-(s/def moving-conditions
+(s/def ::moving-conditions
   (s/*
    (s/cat
-    :tag #{:substitute}
-    :substitutions (s/* `substitution))))
+    :tag (tag :substitute)
+    :substitutions (s/+ ::substitution))))
 
+(s/def ::month (named-as config/months))
 
-(s/def fixed
-  (s/cat :month             ::config/month
+(s/def ::weekday (named-as config/weekdays))
+
+(s/def ::when (named-as config/whens))
+
+(s/def ::which (named-as config/whichs))
+
+(s/def ::every
+  (s/alt :canonical (named-as config/everys)
+         :piecemeal (s/cat :prefix (s/? (s/or :number #{2 4 5 6}
+                                              :parity (named-as #{:odd :even})))
+                           :suffix (named-as #{:year :years}))))
+
+(s/def ::description-key
+  (s/conformer #(if (config/named? %)
+                  (-> % name keyword)
+                  ::s/invalid)))
+
+(s/def ::chronology (named-as config/chronologies))
+
+(s/def ::christian-type (named-as config/christian-types))
+
+(s/def ::islamic-type (named-as config/islamic-types))
+
+(s/def ::hindu-type (named-as config/hindu-types))
+
+(s/def ::hebrew-type (named-as config/hebrew-types))
+
+(s/def ::ethiopian-orthodox-type (named-as config/ethiopian-orthodox-types))
+
+(s/def ::fixed
+  (s/cat :month             ::month
          :day               ::config/day
-         :moving-conditions `moving-conditions))
+         :moving-conditions ::moving-conditions))
 
 
-(s/def fixed-weekday
-  (s/cat :which ::config/which
-         :weekday ::config/weekday
-         :fluff (s/? #{:of})
-         :month ::config/month))
+(s/def ::fixed-weekday
+  (s/cat :which ::which
+         :weekday ::weekday
+         :fluff (fluff :of)
+         :month ::month))
 
 
-(s/def holiday
-  (s/or :christian-holiday :christian/type
-        :islamic-holiday :islamic/type
-        :hindu-holiday :hindu/type
-        :hebrew-holiday :hebrew/type
-        :ethiopian-orthodox-holiday :ethiopian-orthodox/type
+(s/def ::holiday
+  (s/or :christian-holiday ::christian-type
+        :islamic-holiday ::islamic-type
+        :hindu-holiday ::hindu-type
+        :hebrew-holiday ::hebrew-type
+        :ethiopian-orthodox-holiday ::ethiopian-orthodox-type
 
         :composite
         (s/cat
          :definition (s/alt
                       :fixed
-                      `fixed
+                      ::fixed
 
                       :relative-to-fixed
                       (s/cat :offset (s/alt :days (s/cat :days  ::config/days
-                                                         :fluff (s/? #{:days}))
-                                            :weekday ::config/weekday)
-                             :when ::config/when
-                             :reference `fixed)
+                                                         :fluff (fluff :days))
+                                            :weekday ::weekday)
+                             :when ::when
+                             :reference ::fixed)
 
                       :fixed-weekday-between-fixed
-                      (s/cat :weekday ::config/weekday
-                             :tag #{:between}
-                             :from `fixed
-                             :fluff (s/? #{:and})
-                             :to `fixed)
+                      (s/cat :weekday ::weekday
+                             :tag (tag :between)
+                             :from ::fixed
+                             :fluff (fluff :and)
+                             :to ::fixed)
 
                       :fixed-weekday
-                      `fixed-weekday
+                      ::fixed-weekday
 
                       :relative-to-weekday-in-month
-                      (s/cat :weekday ::config/weekday
-                             :when ::config/when
-                             :reference `fixed-weekday)
+                      (s/cat :weekday ::weekday
+                             :when ::when
+                             :reference ::fixed-weekday)
 
                       :fixed-weekday-relative-to-fixed
-                      (s/cat :which ::config/which
-                             :weekday ::config/weekday
-                             :when ::config/when
-                             :reference `fixed)
+                      (s/cat :which ::which
+                             :weekday ::weekday
+                             :when ::when
+                             :reference ::fixed)
 
                       :christian-holiday
-                      (s/cat :chronology (s/? ::config/chronology)
-                             :type :christian/type
-                             :moving-conditions `moving-conditions)
+                      (s/cat :chronology (s/? ::chronology)
+                             :type ::christian-type
+                             :moving-conditions ::moving-conditions)
 
                       :relative-to-easter-sunday
                       (s/cat :days int?
-                             :fluff (s/? #{:days})
-                             :when (s/? ::config/when)
-                             :chronology (s/? ::config/chronology)
-                             :tag #{:easter})
+                             :fluff (fluff :days)
+                             :when (s/? ::when)
+                             :chronology (s/? ::chronology)
+                             :tag (tag :easter))
 
                       :islamic-holiday
-                      :islamic/type
+                      ::islamic-type
 
                       :hindu-holiday
-                      :hindu/type
+                      ::hindu-type
 
                       :hebrew-holiday
-                      :hebrew/type
+                      ::hebrew-type
 
                       :ethiopian-orthodox-holiday
-                      :ethiopian-orthodox/type)
+                      ::ethiopian-orthodox-type)
 
-         :options (s/keys* :opt-un [::config/valid-from
-                                    ::config/valid-to
-                                    ::config/every
-                                    ::config/description-key])
+         :options (s/* (s/alt
+                        :valid-from      (s/cat :tag (s/alt :one (tag :valid-from)
+                                                            :two (s/cat :valid (tag :valid) :from (tag :from)))
+                                                :value ::config/valid-from)
+                        :valid-to        (s/cat :tag (s/alt :one (tag :valid-to)
+                                                            :two (s/cat :valid (tag :valid) :to (tag :to)))
+                                                :value ::config/valid-to)
+                        :valid            (s/cat :tag (tag :valid)
+                                                 :from-tag (tag :from)
+                                                 :from ::config/valid-from
+                                                 :to-tag (tag :to)
+                                                 :to ::config/valid-to)
+                        :every           (s/cat :tag (tag :every)
+                                                :value ::every)
+                        :description-key (s/cat :tag (tag :description-key)
+                                                :value ::description-key)
+                        :localized-type  (named-as #{:official :unofficial :inofficial}))))))
 
-         :localized-type (s/? #{:official :unofficial :inofficial}))))
 
-
-(s/def ::holidays (s/coll-of `holiday))
+(s/def ::holidays (s/coll-of ::holiday))
 
 (s/def ::sub-configurations (s/coll-of ::configuration))
 
@@ -144,36 +208,64 @@
   ""
   holiday-type)
 
+(defmulti parse-option
+  ""
+  key)
+
+(defmethod parse-option :valid-from
+  [[k v]]
+  {k (:value v)})
+
+(defmethod parse-option :valid-to
+  [[k v]]
+  {k (:value v)})
+
+(defmethod parse-option :valid
+  [[_ {:keys [from to]}]]
+  {:valid-from from, :valid-to to})
+
+(defmethod parse-option :every
+  [[k {:keys [value]}]]
+  {k (case (key value)
+       :canonical (val value)
+       :piecemeal ({nil :every-year
+                    2 :2-years
+                    4 :4-years
+                    5 :5-years
+                    6 :6-years
+                    :odd :odd-years
+                    :even :even-years} (some-> value val :prefix val)))})
+
+(defmethod parse-option :description-key
+  [[k v]]
+  {k (:value v)})
+
+(defmethod parse-option :localized-type
+  [[k v]]
+  {k ({:inofficial :unofficial-holiday
+       :unofficial :unofficial-holiday
+       :official   :official-holiday} v)})
+
 (defn parse-common-options
   ""
   [conformed-holiday]
-  (select-keys (-> conformed-holiday val :options)
-               [:valid-from :valid-to :every :description-key]))
+  (into {}
+        (mapcat parse-option)
+        (-> conformed-holiday val :options)))
 
-(defn parse-official-marker
-  ""
-  [conformed-holiday]
-  (when-let [localized-type
-             (some-> conformed-holiday
-                     val
-                     :localized-type
-                     {:inofficial :unofficial-holiday
-                      :unofficial :unofficial-holiday
-                      :official   :official-holiday})]
-    {:localized-type localized-type}))
 
 (defn edn->holiday
   ""
   [holiday]
-  (let [conformed (s/conform `holiday holiday)]
+  (let [conformed (s/conform ::holiday holiday)
+        type (holiday-type conformed)]
     (-> conformed
         -edn->holiday
-        (assoc :holiday (holiday-type conformed))
-        (merge (parse-common-options conformed)
-               (parse-official-marker conformed)))))
+        (assoc :holiday type)
+        (merge (parse-common-options conformed)))))
 
 (s/fdef edn->holiday
-  :args (s/cat :holiday `holiday)
+  :args (s/cat :holiday ::holiday)
   :ret `config/holiday)
 
 (defn edn->configuration
@@ -222,12 +314,27 @@
   :holiday)
 
 
-(defn format-common-options
+(defmulti format-common-options
   ""
-  [holiday]
+  (fn [style _] style))
+
+(defmethod format-common-options :code
+  [_ holiday]
   (mapcat
    (fn [[_ v :as x]] (when v x))
    (select-keys holiday [:valid-from :valid-to :every :description-key])))
+
+(defmethod format-common-options :english
+  [_ {:keys [valid-from valid-to every description-key]}]
+  (concat
+   (cond
+     (and valid-from valid-to)
+     [:valid :from valid-from :to valid-to]
+
+     valid-from [:valid :from valid-from]
+     valid-to [:valid :to valid-to])
+   (when every [:every every])
+   (when description-key [:description-key description-key])))
 
 (defn format-official-marker
   ""
@@ -240,27 +347,43 @@
   [holiday]
   (if (next holiday) holiday (first holiday)))
 
+(s/def ::edn-style #{:code :english})
+
+(defmulti apply-style
+  ""
+  #(-> %2))
+
+(defmethod apply-style :code [holiday _] holiday)
+
+(defmethod apply-style :english
+  [holiday _]
+  (into
+   []
+   (map #(if (keyword? %) (-> % name symbol) %))
+   holiday))
+
 (defn holiday->edn
   ""
-  [holiday]
-  (-> holiday
-      -holiday->edn
-      (into (format-common-options holiday))
+  [style holiday]
+  (-> (-holiday->edn holiday)
+      (into (format-common-options style holiday))
       (into (format-official-marker holiday))
+      (apply-style style)
       simplify-edn))
 
 (s/fdef holiday->edn
-  :args (s/cat :holiday `config/holiday)
-  :ret `holiday)
+  :args (s/cat :style ::edn-style, :holiday `config/holiday)
+  :ret ::holiday)
 
 (defn configuration->edn
   ""
-  [configuration]
-  (cond-> (update configuration :holidays #(map holiday->edn %))
-    (:sub-configurations configuration) (update :sub-configurations #(map configuration->edn %))))
+  [style configuration]
+  (letfn [(map-style [f coll] (map #(f style %) coll))]
+    (cond-> (update configuration :holidays #(map-style holiday->edn %))
+      (:sub-configurations configuration) (update :sub-configurations #(map-style configuration->edn %)))))
 
 (s/fdef configuration->edn
-  :args (s/cat :configuration ::config/configuration)
+  :args (s/cat :style ::edn-style, :configuration ::config/configuration)
   :ret ::configuration)
 
 

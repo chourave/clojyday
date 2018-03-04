@@ -17,23 +17,36 @@
     RelativeToEasterSunday RelativeToFixed RelativeToWeekdayInMonth Weekday
     When Which With)))
 
+(def months #{:january :february :march :april :may :june
+              :july :august :september :october :november :december})
+
+(def weekdays #{:monday :tuesday :wednesday :thursday :friday :saturday :sunday})
+
+(def whichs #{:first :second :third :fourth :last})
+
+(def whens #{:before :after})
+
+(def everys #{:every-year :2-years :4-years :5-years :6-years :odd-years :even-years})
+
+(def withs #{:next :previous})
+
+(def chronologies #{:julian :gregorian})
 
 (s/def ::day (s/int-in 1 32))
 
-(s/def ::month #{:january :february :march :april :may :june
-                 :july :august :september :october :november :december})
+(s/def ::month months)
 
-(s/def ::weekday #{:monday :tuesday :wednesday :thursday :friday :saturday :sunday})
+(s/def ::weekday weekdays)
 
-(s/def ::which #{:first :second :third :fourth :last})
+(s/def ::which whichs)
 
-(s/def ::when #{:before :after})
+(s/def ::when whens)
 
 (s/def ::valid-from int?)
 
 (s/def ::valid-to int?)
 
-(s/def ::every #{:every-year :2-years :4-years :5-years :6-years :odd-years :even-years})
+(s/def ::every everys)
 
 (s/def ::description-key keyword?)
 
@@ -41,7 +54,7 @@
 
 (s/def ::substitute ::weekday)
 
-(s/def ::with #{:next :previous})
+(s/def ::with withs)
 
 (s/def ::moving-conditions
   (s/coll-of
@@ -92,7 +105,8 @@
 (defn named?
   "Is x a valid argument to the `name` function?"
   [x]
-  (instance? clojure.lang.Named x))
+  (or (instance? clojure.lang.Named x)
+      (string? x)))
 
 (s/fdef named?
   :args (s/cat :x any?)
@@ -407,14 +421,15 @@
 
 ;; Christian
 
-(s/def :christian/type
+(def christian-types
   #{:good-friday :easter-monday :ascension-day :whit-monday :corpus-christi
     :maundy-thursday :ash-wednesday :mardi-gras :general-prayer-day
     :clean-monday :shrove-monday :pentecost :carnival :easter-saturday
     :easter-tuesday :sacred-heart :easter :pentecost-monday :whit-sunday})
 
+(s/def :christian/type christian-types)
 
-(s/def ::chronology #{:julian :gregorian})
+(s/def ::chronology chronologies)
 
 
 (defmethod holiday-spec :christian-holiday [_]
@@ -448,9 +463,11 @@
 
 ;; Islamic
 
-(s/def :islamic/type
+(def islamic-types
   #{:newyear :aschura :mawlid-an-nabi :lailat-al-miraj :lailat-al-barat
     :ramadan :lailat-al-qadr :id-al-fitr :id-ul-adha})
+
+(s/def :islamic/type islamic-types)
 
 
 (defmethod holiday-spec :islamic-holiday [_]
@@ -468,7 +485,10 @@
 
 ;; Hindu
 
-(s/def :hindu/type #{:holi})
+(def hindu-types
+  #{:holi})
+
+(s/def :hindu/type hindu-types)
 
 
 (defmethod holiday-spec :hindu-holiday [_]
@@ -486,12 +506,13 @@
 
 ;; Hebrew
 
-(s/def :hebrew/type
+(def hebrew-types
   #{:rosh-hashanah :aseret-yemei-teshuva :yom-kippur :sukkot :shemini-atzeret
     :hanukkah :asarah-betevet :tu-bishvat :purim :1-nisan :pesach :sefirah
     :lag-baomer :shavout :17-tammuz :tisha-bav :1-elul :rosh-codesh :shabbat
     :yom-hashoah :yom-hazikaron :yom-haatzamaut :yom-yerushalaim})
 
+(s/def :hebrew/type hebrew-types)
 
 (defmethod holiday-spec :hebrew-holiday [_]
   (s/merge
@@ -508,9 +529,10 @@
 
 ;; Ethiopian orthodox
 
-(s/def :ethiopian-orthodox/type
+(def ethiopian-orthodox-types
   #{:timkat :enkutatash :meskel})
 
+(s/def :ethiopian-orthodox/type ethiopian-orthodox-types)
 
 (defmethod holiday-spec :ethiopian-orthodox-holiday [_]
   (s/merge

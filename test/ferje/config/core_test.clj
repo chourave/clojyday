@@ -45,6 +45,11 @@
       :else                                        %)
    x))
 
+(deftest named?-test
+  (is (config/named? :a))
+  (is (config/named? 'a))
+  (is (config/named? "a")))
+
 (deftest ->const-name-test
   (is (= "OCTOBER_DAYE"
          (config/->const-name :october-daye))))
