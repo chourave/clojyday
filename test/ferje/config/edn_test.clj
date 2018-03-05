@@ -513,9 +513,9 @@
           :description "United States"
           :holidays    [{:holiday :fixed :month :january :day 1}]}
          (edn-config/edn->configuration
-          {:hierarchy   :us
-           :description "United States"
-           :holidays    '[[january 1]]})))
+          '{hierarchy   us
+            description "United States"
+            holidays    [[january 1]]})))
 
   (is (= {:hierarchy          :us
           :description        "United States"
@@ -524,12 +524,12 @@
                                 :description "New York"
                                 :holidays    [{:holiday :fixed, :month :february, :day 12}]}]}
          (edn-config/edn->configuration
-          '{:hierarchy          :us
-            :description        "United States"
-            :holidays           [[january 1]]
-            :sub-configurations [{:hierarchy   :ny
-                                  :description "New York"
-                                  :holidays    [[february 12]]}]}))))
+          '{hierarchy          us
+            description        "United States"
+            holidays           [[january 1]]
+            sub-configurations [{:hierarchy   :ny
+                                 :description "New York"
+                                 :holidays    [[february 12]]}]}))))
 
 (deftest configuration->edn-test
   (is (= {:hierarchy   :us
@@ -566,21 +566,21 @@
            :holidays    [{:holiday :fixed, :month :january, :day 1
                           :valid-from 1950, :valid-to 1988}]})))
 
-  (is (= '{:hierarchy   :us
-           :description "United States"
-           :holidays    [[january 1]]}
+  (is (= '{hierarchy   us
+           description "United States"
+           holidays    [[january 1]]}
          (edn-config/configuration->edn
           :english
           {:hierarchy   :us
            :description "United States"
            :holidays    [{:holiday :fixed :month :january :day 1}]})))
 
-  (is (= '{:hierarchy          :us
-           :description        "United States"
-           :holidays           [[january 1]]
-           :sub-configurations [{:hierarchy   :ny
-                                 :description "New York"
-                                 :holidays    [[february 12]]}]}
+  (is (= '{hierarchy          us
+           description        "United States"
+           holidays           [[january 1]]
+           sub-configurations [{hierarchy   ny
+                                description "New York"
+                                holidays    [[february 12]]}]}
          (edn-config/configuration->edn
           :english
           {:hierarchy   :us
@@ -590,9 +590,9 @@
                                  :description "New York"
                                  :holidays [{:holiday :fixed, :month :february, :day 12}]}]})))
 
-  (is (= '{:hierarchy   :us
-           :description "United States"
-           :holidays    [[january 1, valid from 1950 to 1988]]}
+  (is (= '{hierarchy   us
+           description "United States"
+           holidays    [[january 1, valid from 1950 to 1988]]}
          (edn-config/configuration->edn
           :english
           {:hierarchy   :us

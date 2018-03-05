@@ -186,9 +186,20 @@
 
 (s/def ::sub-configurations (s/coll-of ::configuration))
 
+(defn keywordize-keys
+  [m]
+  (into {} (map (fn [[k v]] [(-> k name keyword) v])) m))
+
+(s/def ::hierarchy
+  (s/and config/named?
+         (s/conformer #(-> % name keyword))))
+
 (s/def ::configuration
-  (s/keys :req-un [::config/description ::config/hierarchy ::holidays]
-          :opt-un [::sub-configurations]))
+  (s/and
+   (s/map-of config/named? any?)
+   (s/conformer keywordize-keys)
+   (s/keys :req-un [::config/description ::hierarchy ::holidays]
+           :opt-un [::sub-configurations])))
 
 (defn holiday-type
   ""
@@ -271,8 +282,12 @@
 (defn edn->configuration
   ""
   [configuration]
-  (cond-> (update configuration :holidays #(map edn->holiday %))
-    (:sub-configurations configuration) (update :sub-configurations #(map edn->configuration %))))
+  (let [configuration (keywordize-keys configuration)]
+    (-> configuration
+        (update :holidays #(map edn->holiday %))
+        (update :hierarchy #(-> % name keyword))
+        (into (for [[k v] (select-keys configuration [:sub-configurations])]
+                [k (map edn->configuration v)])))))
 
 (s/fdef edn->configuration
   :args (s/cat :configuration ::configuration)
@@ -375,12 +390,34 @@
   :args (s/cat :style ::edn-style, :holiday `config/holiday)
   :ret ::holiday)
 
+(defmulti format-configuration
+  ""
+  #(-> %2))
+
+(defmethod format-configuration :code
+  [configuration _]
+  configuration)
+
+(defmethod format-configuration :english
+  [configuration _]
+  (into {} (map (fn [[k v]] [(-> k name symbol) v])) configuration))
+
+(defn format-keyword
+  ""
+  [style keyword]
+  (case style
+    :english (-> keyword name symbol)
+    :code keyword))
+
 (defn configuration->edn
   ""
   [style configuration]
-  (letfn [(map-style [f coll] (map #(f style %) coll))]
-    (cond-> (update configuration :holidays #(map-style holiday->edn %))
-      (:sub-configurations configuration) (update :sub-configurations #(map-style configuration->edn %)))))
+  (-> configuration
+      (update :holidays #(for [h %] (holiday->edn style h)))
+      (update :hierarchy #(format-keyword style %))
+      (into (for [[k v] (select-keys configuration [:sub-configurations])]
+              [k (for [c v] (configuration->edn style c))]))
+      (format-configuration style)))
 
 (s/fdef configuration->edn
   :args (s/cat :style ::edn-style, :configuration ::config/configuration)
@@ -399,8 +436,8 @@
   (when-let [conditions (:moving-conditions holiday)]
     {:moving-conditions
      (into []
-           (mapcat (fn [{:keys [substitutions]}]
-                     (map #(select-keys % [:substitute :with :weekday]) substitutions)))
+           (mapcat #(for [s (:substitutions %)]
+                      (select-keys s [:substitute :with :weekday])))
            conditions)}))
 
 (defn parse-fixed-edn
