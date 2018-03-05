@@ -1,15 +1,19 @@
 # Ferje
 
-Computes holiday dates without need for network access or a database.
-
 > **Jour férié**  
 > IPA /ʒuʁ fe.ʁje/  
 > French : bank holiday, public holiday
 
-Ferje harnesses the power of the awesome [Jollyday](http://jollyday.sourceforge.net) library,
-expressing it as idiomatic Clojure.
+Ferje gives you an idiotmatic Clojure interface to compute holiday dates without
+needing network access or a database. The awesome [Jollyday](http://jollyday.sourceforge.net)
+library does the heavy lifting behind the scenes.
 
-## Usage<sup id="a1">[1](#f1)</sup>
+
+- [Sample use](#usage)
+- [API](doc/api.md)
+- [Configuration](doc/configuration.md)
+
+## <a name="usage"></a>Usage<sup id="a1">[1](#f1)</sup>
 
 > I wonder what holidays they have in the US.
 
