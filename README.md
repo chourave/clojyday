@@ -15,7 +15,9 @@ library does the heavy lifting behind the scenes.
 
 ## <a name="usage"></a>Usage<sup id="a1">[1](#f1)</sup>
 
-> I wonder what holidays they have in the US.
+> What holidays do they have in the US?
+>
+> I’ve heard about this newfangled Ferje library, let’s give it a spin!
 
 ``` clojure
 > (require '[ferje.core :as ferje])
@@ -31,8 +33,10 @@ library does the heavy lifting behind the scenes.
   {:date #date "2018-01-01", :description nil, :description-key "NEW_YEAR", :official? true}}
 ```
 
-> That’s weird. My friend Rahul lives over there, and I’m sure he told me about a holiday in march,
-> but I can’t find one. Let’s just focus on March, perhaps I’m overlooking something.
+> Cool, but not qui what I was expecting. My friend Rahul told me about a holiday they were
+> having in March, but I can’t seem to find any.
+>
+> I’ll focus my query on March to make the list more manageable, just in case I missed something.
 
 ``` clojure
 > (ferje/holidays :us {2018 3})
@@ -40,7 +44,7 @@ library does the heavy lifting behind the scenes.
 #{}
 ```
 
-> Nope, it’s not just me. Merhaps it’s a local holiday. Rahul lives in Massachusetts, let’s try that.
+> Nope, it’s not just me. Perhaps it’s a local holiday. Rahul lives in Massachusetts, let’s try that.
 
 ``` clojure
 > (ferje/holidays [:us :ma] {2018 3})
@@ -48,7 +52,10 @@ library does the heavy lifting behind the scenes.
 #{}
 ```
 
-> Still no luck! Let’s search a wider time span, from February to April.
+> Still no luck! Is this thing even doing anything different for Massachusetts than for the US in
+> general?
+>
+> I’ll widen my search to span February to April, hopefully I’ll find something new.
 
 ``` clojure
 > (ferje/holidays [:us :ma]  [{2018 2} {2018 4}])
@@ -57,8 +64,12 @@ library does the heavy lifting behind the scenes.
   {:date #date "2018-04-16", :description nil, :description-key "PATRIOT", :official? true}}
 ```
 
-> That’s better, but I’m stil pretty sure Rahul told me that they had a holiday in March.
+> That’s better. The US in general didn’t have those holidays, so my Massachusetts criterion is
+> definitely adding holidays.
+> Still, I’m pretty sure Rahul told me that they had a holiday in March were he lives.
 > Perhaps it depends on *where* precisely you live in Massachusetts?
+>
+> What places in Massachusetts does Ferje know about?
 
 ``` clojure
 > (ferje/calendar-hierarchy [:us :ma])
@@ -73,6 +84,7 @@ library does the heavy lifting behind the scenes.
 
 > A-ha, they have a zone called `:ca` for Cambridge. As it happens, that’s where Rahul lives.
 > There must be some extra holidays that apply only to Cambridge, not the whole of Massachusetts.
+>
 > Let’s find out.
 
 ```clojure
