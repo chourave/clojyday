@@ -8,10 +8,11 @@ Ferje gives you an idiotmatic Clojure interface to compute holiday dates without
 needing network access or a database. The awesome [Jollyday](http://jollyday.sourceforge.net)
 library does the heavy lifting behind the scenes.
 
+In this documentation, you will find:
 
-- [Sample use](#usage)
-- [API](doc/api.md)
-- [Configuration](doc/configuration.md)
+- A sample [use session](#usage)
+- A documentation for the [API](doc/api.md)
+- A guide to the [configuration DSL](doc/configuration.md) for defining custom calendars
 
 ## <a name="usage"></a>Usage<sup id="a1">[1](#f1)</sup>
 
