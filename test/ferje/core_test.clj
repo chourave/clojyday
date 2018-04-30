@@ -44,8 +44,6 @@
             :description-key "de"
             :zones
             {:bb {:id :bb, :description-key "de.bb", :zones nil}
-             :st {:id :st, :description-key "de.st", :zones nil}
-             :th {:id :th, :description-key "de.th", :zones nil}
              :bw {:id :bw, :description-key "de.bw", :zones nil}
              :by {:id :by
                   :description-key "de.by"
@@ -55,12 +53,16 @@
                    :ag {:id :ag, :description-key "de.by.ag", :zones nil}
                    :mu {:id :mu, :description-key "de.by.mu", :zones nil}
                    :wu {:id :wu, :description-key "de.by.wu", :zones nil}}}
+             :he {:id :he, :description-key "de.he", :zones nil}
+             :hh {:id :hh, :description-key "de.hh", :zones nil}
              :mv {:id :mv, :description-key "de.mv", :zones nil}
              :nw {:id :nw, :description-key "de.nw", :zones nil}
+             :rp {:id :rp, :description-key "de.rp", :zones nil}
+             :sh {:id :sh, :description-key "de.sh", :zones nil}
              :sl {:id :sl, :description-key "de.sl", :zones nil}
              :sn {:id :sn, :description-key "de.sn", :zones nil}
-             :he {:id :he, :description-key "de.he", :zones nil}
-             :rp {:id :rp, :description-key "de.rp", :zones nil}}}
+             :st {:id :st, :description-key "de.st", :zones nil}
+             :th {:id :th, :description-key "de.th", :zones nil}}}
            (filter-calendar (ferje/calendar-hierarchy :de)))))
 
   (testing "Sub-hierarchy"
